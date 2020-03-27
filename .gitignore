@@ -7,7 +7,6 @@
 /pkg/
 /spec/reports/
 /tmp/
-
-.idea
+.idea/
 *.orig
-/private_examples/
+.ruby-version
