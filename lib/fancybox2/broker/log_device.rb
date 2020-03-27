@@ -1,6 +1,6 @@
 module Fancybox2
-  module Module
-    class BrokerLogDev
+  module Broker
+    class LogDevice
 
       def initialize
         # TODO: implement

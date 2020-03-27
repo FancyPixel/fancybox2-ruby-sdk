@@ -1,5 +1,3 @@
-require 'logger'
-
 module Fancybox2
   module Module
     class Base
@@ -11,7 +9,6 @@ module Fancybox2
         options.deep_symbolize_keys!
         @logger = options[:logger] || build_default_logger
       end
-
     end
   end
 end
