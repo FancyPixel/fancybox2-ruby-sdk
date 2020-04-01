@@ -1,4 +1,5 @@
 require 'zeitwerk'
+require 'logger'
 
 loader = Zeitwerk::Loader.for_gem
 core_ext = "#{__dir__}/fancybox2/core_ext/"
