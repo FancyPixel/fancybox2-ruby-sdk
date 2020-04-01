@@ -6,13 +6,11 @@ Gem::Specification.new do |spec|
   spec.author        = 'Alessandro Verlato'
   spec.email         = 'alessandro@fancypixel.it'
 
-  spec.summary       = 'Consume HTTP APIs with style'
-  spec.homepage      = 'https://github.com/madAle/api_recipes'
+  spec.summary       = 'Fancybox 2 Ruby SDK'
+  spec.homepage      = 'https://github.com/Fancybox2/ruby-sdk'
   spec.license       = 'MIT'
 
-  spec.files         = `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
-  spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.require_paths = ['lib']
+  spec.files         = Dir['README.md', 'MIT-LICENSE', 'lib/**/*.rb']
   spec.required_ruby_version = '>= 2.5.0'
 
   spec.add_dependency 'zeitwerk',   '~> 2.3.0'
