@@ -87,7 +87,6 @@ module Fancybox2
         end
       end
 
-      # 806179702
       def escape_data_of(logger)
         original_formatter = ::Logger::Formatter.new
         logger.formatter = proc do |severity, datetime, progname, msg|
