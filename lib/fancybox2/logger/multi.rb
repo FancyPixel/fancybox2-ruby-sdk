@@ -20,25 +20,25 @@ module Fancybox2
         if !loggers.is_a?(Array) || loggers.size.zero?
           raise ArgumentError.new("provide at least one logger instance")
         end
-        @loggers = []
-        @level = options[:level]
+
+        @level = normalize_log_level(options[:level])
         @escape_data = options[:escape_data] || false
         @progname = options[:progname]
 
         self.loggers = loggers
+        # Set properties
+        self.level = @level
+        self.escape_data = @escape_data
+        self.progname = @progname
+
         define_methods
       end
 
       def add(level, *args)
-        @loggers.each { |logger| logger.add(level, args) }
+        @loggers.each { |logger| logger.add(level, *args) }
       end
 
       def add_logger(logger)
-        logger.level = @level if @level
-        logger.progname = @progname if @progname
-        if escape_data
-          escape_data_of logger
-        end
         @loggers << logger
       end
 
@@ -61,14 +61,21 @@ module Fancybox2
         @loggers.each { |logger| logger.level = level }
       end
 
-      def loggers=(loggers)
-        loggers.each do |logger|
+      def loggers=(new_loggers)
+        @loggers = []
+        new_loggers.each do |logger|
           # Check if provided loggers are real Loggers
           unless logger.is_a? ::Logger
             raise ArgumentError.new("one of the provided loggers is not of class Logger, but of class '#{logger.class}'")
           end
           # Add Logger to the list
           add_logger logger
+        end
+      end
+
+      def progname=(name)
+        loggers.each do |logger|
+          logger.progname = name
         end
       end
 

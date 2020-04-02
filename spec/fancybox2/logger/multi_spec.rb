@@ -3,6 +3,7 @@ require 'logger'
 
 describe Fancybox2::Logger::Multi do
   let(:stdout_logger) { Logger.new STDOUT }
+  let(:file_logger) { Logger.new File.open($spec_log_file_path, 'w+') }
 
   context 'attr_accessors' do
     subject(:multi_logger_class) { Fancybox2::Logger::Multi.new stdout_logger}
@@ -30,6 +31,20 @@ describe Fancybox2::Logger::Multi do
       end
     end
 
+    it 'is expected to set log level on every provided logger' do
+      level = Logger::WARN
+      Fancybox2::Logger::Multi.new stdout_logger, file_logger, level: level
+      expect(stdout_logger.level).to eq level
+      expect(file_logger.level).to eq level
+    end
+
+    it 'is expected to set progname on every provided logger' do
+      progname = 'NICE_PROGRAM'
+      Fancybox2::Logger::Multi.new stdout_logger, file_logger, progname: progname
+      expect(stdout_logger.progname).to eq progname
+      expect(file_logger.progname).to eq progname
+    end
+
     context 'options' do
       let(:level) { Logger::INFO }
       let(:escape_data) { true }
@@ -55,6 +70,90 @@ describe Fancybox2::Logger::Multi do
         expect(multi.progname).to eq progname
       end
     end
+  end
 
+  describe '#add' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger, file_logger }
+    let(:log_level) { Logger::INFO }
+    let(:log_message) { "log message" }
+
+    it "is expected to forward the call to #add to every configured logger" do
+      expect(stdout_logger).to receive(:add).with log_level, log_message
+      multi.add log_level, log_message
+    end
+  end
+
+  describe '#add_logger' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger }
+
+    it 'is expected to add the provided logger to the list' do
+      multi.add_logger file_logger
+      expect(multi.loggers).to include file_logger
+    end
+  end
+
+  describe '#close' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger, file_logger }
+
+    it 'is expected to call #close on every configured logger' do
+      expect(stdout_logger).to receive :close
+      expect(file_logger).to receive :close
+      multi.close
+    end
+  end
+
+  describe '#escape_data=(value)' do
+    let(:multi) { Fancybox2::Logger::Multi.new file_logger }
+    let(:bad_message) { 'a very nasty "" message' }
+
+    context 'when value is true' do
+      it 'is expected to configure, on every logger, a Logger::Formatter with escaped (dumped) log messages' do
+        multi.escape_data = true
+        multi.info bad_message
+        multi.close
+        expect(File.read($spec_log_file_path)).to include bad_message.dump
+      end
+    end
+
+    context 'when value is false' do
+      it 'is expected to configure, on every logger, a Logger::Formatter without escaped log messages' do
+        multi.escape_data = false
+        multi.info bad_message
+        multi.close
+        expect(File.read($spec_log_file_path)).to include bad_message
+      end
+    end
+  end
+
+  describe '#level=(level)' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger, file_logger }
+    let(:level) { Logger::WARN }
+
+    it 'is expected to configure provided log level on every logger' do
+      multi.level = level
+      expect(stdout_logger.level).to eq level
+      expect(file_logger.level).to eq level
+    end
+  end
+
+  describe '#loggers=(loggers)' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger, file_logger }
+    let(:new_loggers) { [Logger.new(STDERR), Logger.new(STDIN)] }
+
+    it 'is expected to replace loggers with provided ones' do
+      multi.loggers = new_loggers
+      expect(multi.loggers).to match_array new_loggers
+    end
+  end
+
+  describe '#progname=(name)' do
+    let(:multi) { Fancybox2::Logger::Multi.new stdout_logger, file_logger }
+    let(:progname) { 'THE_PROG' }
+
+    it 'is expected to set progname on every provided logger' do
+      multi.progname = progname
+      expect(stdout_logger.progname).to eq progname
+      expect(file_logger.progname).to eq progname
+    end
   end
 end

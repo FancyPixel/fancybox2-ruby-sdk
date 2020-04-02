@@ -1,6 +1,28 @@
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'fancybox2'
 
+RSpec.configure do |config|
+  $spec_log_file_path = "#{__dir__}/spec_log.txt"
+
+  config.before(:suite) do
+  end
+
+  config.after(:suite) do
+  end
+
+  config.before(:each) do
+  end
+
+  config.after(:each) do
+    if File.exist?($spec_log_file_path)
+      File.delete($spec_log_file_path)
+    end
+  end
+
+  config.order = :random
+end
+
+## Some extension
 RSpec::Matchers.define :have_attr_accessor do |field|
   match do |object_instance|
     object_instance.respond_to?(field) &&

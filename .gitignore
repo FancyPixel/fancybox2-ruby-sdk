@@ -10,3 +10,4 @@
 .idea/
 *.orig
 .ruby-version
+*.log
