@@ -13,7 +13,8 @@ module Fancybox2
     class Multi
       attr_accessor :loggers, :level, :escape_data, :progname
 
-      def initialize(*args)# level: nil, loggers: nil, escape_data: true)
+      # logger_1, logger_2, ... , level: nil, loggers: nil, escape_data: true)
+      def initialize(*args)
         options = args.extract_options.deep_symbolize_keys
         loggers = args
         if !loggers.is_a?(Array) || loggers.size.zero?
