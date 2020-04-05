@@ -15,7 +15,7 @@ RSpec.configure do |config|
 
   config.after(:each) do
     if File.exist?($spec_log_file_path)
-      File.delete($spec_log_file_path)
+      # File.delete($spec_log_file_path)
     end
   end
 

@@ -19,7 +19,7 @@ describe Fancybox2::Logger::MQTTLogDevice do
     end
 
     it "is expected to raise an ArgumentError if provided client does not respond to '#publish'" do
-      expect { Fancybox2::Logger::MQTTLogDevice.new client: "not_a_client" }.to raise_error ArgumentError
+      expect { Fancybox2::Logger::MQTTLogDevice.new client: 'not_a_client' }.to raise_error ArgumentError
     end
 
     it "is expected to set accept 'topic' param and set its value on instance" do
@@ -37,7 +37,7 @@ describe Fancybox2::Logger::MQTTLogDevice do
     let(:logdev) { Fancybox2::Logger::MQTTLogDevice.new client: mqtt_client, topic: topic }
     let(:log_message) { 'a log message' }
 
-    it "is expected to call client#publish with topic and message as arguments" do
+    it 'is expected to call client#publish with topic and message as arguments' do
       expect(mqtt_client).to receive(:publish).with topic, log_message
       logdev.write(log_message)
     end
