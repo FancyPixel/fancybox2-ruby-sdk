@@ -90,6 +90,10 @@ describe Fancybox2::Logger::Multi do
       multi.add_logger file_logger
       expect(multi.loggers).to include file_logger
     end
+
+    it "is expected to have an alias method called 'log'" do
+      expect(multi).to respond_to :log
+    end
   end
 
   describe '#close' do

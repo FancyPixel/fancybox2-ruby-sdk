@@ -1,0 +1,63 @@
+D, [2020-04-03T15:31:51.562204 #59308] DEBUG -- : Attempt to connect to host: localhost...
+D, [2020-04-03T15:31:51.564316 #59308] DEBUG -- : Connection accepted
+D, [2020-04-03T15:31:51.564352 #59308] DEBUG -- : No previous session found by server, starting a new one.
+I, [2020-04-03T15:31:51.569402 #59308]  INFO -- : New packet PahoMqtt::Packet::Suback received.
+I, [2020-04-03T15:31:51.574657 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:31:51.574764 #59308]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:31:51.574827 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.574933 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.575001 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:31:51.575058 #59308]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:31:51.575110 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.575183 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.575246 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:31:51.575314 #59308]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:31:51.575364 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.575430 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.580762 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:31:51.580910 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.581040 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:31:51.581115 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.581204 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:31:51.581283 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:51.586494 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrel received.
+I, [2020-04-03T15:31:56.576313 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:31:56.576591 #59308]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:31:56.576775 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.577033 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.577255 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:31:56.577373 #59308]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:31:56.577481 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.577681 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.583047 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:31:56.583167 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.583300 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:31:56.583387 #59308]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:31:56.588664 #59308]  INFO -- : New packet PahoMqtt::Packet::Pubrel received.
+I, [2020-04-03T15:32:01.585089 #59308]  INFO -- : New packet PahoMqtt::Packet::Unsuback received.
+D, [2020-04-03T15:32:06.582655 #59308] DEBUG -- : Checking if server is still alive...
+I, [2020-04-03T15:32:06.585686 #59308]  INFO -- : New packet PahoMqtt::Packet::Pingresp received.
+D, [2020-04-03T15:32:11.577276 #59308] DEBUG -- : Disconnecting from localhost.
+D, [2020-04-03T15:33:17.431969 #60828] DEBUG -- : Attempt to connect to host: localhost...
+D, [2020-04-03T15:33:17.434071 #60828] DEBUG -- : Connection accepted
+D, [2020-04-03T15:33:17.434121 #60828] DEBUG -- : No previous session found by server, starting a new one.
+I, [2020-04-03T15:33:17.439140 #60828]  INFO -- : New packet PahoMqtt::Packet::Suback received.
+I, [2020-04-03T15:33:17.443932 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:33:17.444016 #60828]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:33:17.444082 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.444194 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.444270 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:33:17.444332 #60828]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:33:17.444388 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.444467 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.444534 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubrec received.
+I, [2020-04-03T15:33:17.444597 #60828]  INFO -- : New packet PahoMqtt::Packet::Puback received.
+I, [2020-04-03T15:33:17.444650 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.444723 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.449171 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:33:17.449259 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.449361 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:33:17.449413 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.449480 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubcomp received.
+I, [2020-04-03T15:33:17.449539 #60828]  INFO -- : New packet PahoMqtt::Packet::Publish received.
+I, [2020-04-03T15:33:17.454725 #60828]  INFO -- : New packet PahoMqtt::Packet::Pubrel received.

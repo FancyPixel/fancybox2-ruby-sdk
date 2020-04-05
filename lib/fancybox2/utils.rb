@@ -5,7 +5,5 @@ module Fancybox2
 
   module Utils
     extend self
-
-
   end
 end

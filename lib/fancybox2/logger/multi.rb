@@ -37,6 +37,7 @@ module Fancybox2
       def add(level, *args)
         @loggers.each { |logger| logger.add(level, *args) }
       end
+      alias log add
 
       def add_logger(logger)
         @loggers << logger

@@ -15,4 +15,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'zeitwerk',   '~> 2.3.0'
   spec.add_dependency 'paho-mqtt',  '~> 1.0.12'
+  spec.add_dependency 'concurrent-ruby',  '~> 1.1.6'
 end
