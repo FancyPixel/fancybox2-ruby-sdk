@@ -27,9 +27,11 @@ module Fancybox2
 
         self.loggers = loggers
         # Set properties
-        self.level = @level
-        self.escape_data = @escape_data
-        self.progname = @progname
+        # Override Loggers levels only if explicitly required
+        self.level = @level if options[:level] # Do not use @level because it has already been processed
+        # Override Logger's Formatter only if explicitly required
+        self.escape_data = @escape_data if @escape_data
+        self.progname = @progname if @progname
 
         define_methods
       end
@@ -105,11 +107,12 @@ module Fancybox2
       # @param [String] log_level
       def normalize_log_level(log_level)
         case log_level
-        when :debug, ::Logger::DEBUG, 'debug' then ::Logger::DEBUG
-        when :info,  ::Logger::INFO,  'info'  then ::Logger::INFO
-        when :warn,  ::Logger::WARN,  'warn'  then ::Logger::WARN
-        when :error, ::Logger::ERROR, 'error' then ::Logger::ERROR
-        when :fatal, ::Logger::FATAL, 'fatal' then ::Logger::FATAL
+        when :unknown, ::Logger::UNKNOWN, 'unknown' then ::Logger::UNKNOWN
+        when :debug,   ::Logger::DEBUG,   'debug'   then ::Logger::DEBUG
+        when :info,    ::Logger::INFO,    'info'    then ::Logger::INFO
+        when :warn,    ::Logger::WARN,    'warn'    then ::Logger::WARN
+        when :error,   ::Logger::ERROR,   'error'   then ::Logger::ERROR
+        when :fatal,   ::Logger::FATAL,   'fatal'   then ::Logger::FATAL
         else
           ::Logger::INFO
         end
