@@ -11,3 +11,4 @@
 *.orig
 .ruby-version
 *.log
+*_log
