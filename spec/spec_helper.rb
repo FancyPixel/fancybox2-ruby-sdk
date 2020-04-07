@@ -1,13 +1,17 @@
 $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'fancybox2'
 
+Dir[File.expand_path('../support/**/*.rb', __FILE__)].each { |f| require f }
+
 RSpec.configure do |config|
   $spec_log_file_path = "#{__dir__}/spec_log.txt"
 
   config.before(:suite) do
+    Mosquitto.start
   end
 
   config.after(:suite) do
+    Mosquitto.stop
   end
 
   config.before(:each) do
