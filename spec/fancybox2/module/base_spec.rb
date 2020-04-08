@@ -2,8 +2,8 @@ require 'spec_helper'
 
 describe Fancybox2::Module::Base do
   let(:module_base_klass) { Fancybox2::Module::Base }
-  let(:mqtt_client) { PahoMqtt::Client.new }
-  let(:mqtt_client_params) { { host: 'some_valid_host', port: '2000' } }
+  let(:mqtt_client) { PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS }
+  let(:mqtt_client_params) { { host: 'some_valid_host', port: 2000 } }
   let(:log_level) { Logger::UNKNOWN }
   let(:log_progname) { 'Fancy Program' }
   let(:logger) { Logger.new STDOUT }
