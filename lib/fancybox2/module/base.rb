@@ -5,23 +5,68 @@ require 'paho-mqtt'
 module Fancybox2
   module Module
     class Base
-      include Config
 
-      attr_accessor :logger, :log_level, :log_progname, :mqtt_client
+      attr_accessor :logger, :log_level, :log_progname, :mqtt_client, :mqtt_client_params
 
       def initialize(*args)
         options = args.extract_options.deep_symbolize_keys!
-        @mqtt_client = options[:mqtt_client]
+        if options[:mqtt_client]
+          self.mqtt_client = options[:mqtt_client]
+        end
         @mqtt_client_params = options[:mqtt_client_params] || {}
         @log_level = options[:log_level] || ::Logger::DEBUG
-        @log_progname = options[:log_progname] || 'Fancybox2::Module::Base'
+        @log_progname = options.fetch(:log_progname, 'Fancybox2::Module::Base')
         @logger = options[:logger]
       end
 
-      def default_subscriptions
+      def alive
+      end
+
+      def core_command(n)
+      end
+      
+      def default_topics
         [
-            "#{name}"
+            Config::DEFAULT_TOPIC_FORMAT % [name, 'start'],
+            Config::DEFAULT_TOPIC_FORMAT % [name, 'stop'],
+            Config::DEFAULT_TOPIC_FORMAT % [name, 'restart'],
+            Config::DEFAULT_TOPIC_FORMAT % [name, 'shutdown'],
+            Config::DEFAULT_TOPIC_FORMAT % [name, 'logger']
         ]
+
+      end
+
+      def fbxfile
+        return @fbxfile if @fbxfile
+        if File.exists? fbxfile_path
+          @fbxfile = JSON.parse(File.read(fbxfile_path)).deep_symbolize_keys
+        else
+          raise Exceptions::FbxfileNotFound.new Config::FBXFILE_DEFAULT_FILE_PATH
+        end
+        @fbxfile
+      end
+
+      def fbxfile=(hash_attributes)
+        raise ArgumentError, 'You must provide an Hash as argument' unless hash_attributes.is_a?(Hash)
+        @fbxfile = hash_attributes.deep_symbolize_keys
+      end
+
+      def fbxfile_path
+        return @fbxfile_path if @fbxfile_path
+        # Tell if this is the Base class or an instance of a subclass
+        ancestors = self.class.ancestors[1..-1] # Exclude self from ancestors
+        if ancestors.include? Base
+          # I'm a subclass so Fbxfile should be in a precise location
+          @fbxfile_path = Config::FBXFILE_DEFAULT_FILE_PATH
+        else
+          # I'm the Base class, use Fbxfile.example
+          @fbxfile_path = Config::FBXFILE_EXAMPLE_FILE_PATH
+        end
+        @fbxfile_path
+      end
+
+      def fbxfile_path=(path)
+        @fbxfile_path = path
       end
 
       def logger
@@ -34,29 +79,25 @@ module Fancybox2
                                          escape_data: true
       end
 
-      def name
-        fbxfile[:name]
-      end
-
       def mqtt_client
         return @mqtt_client if @mqtt_client
         @mqtt_client = PahoMqtt::Client. new mqtt_params
         @mqtt_client
       end
 
-      def alive
+      def mqtt_client=(client)
+        unless client.is_a? PahoMqtt::Client
+          raise Exceptions::NotValidMQTTClient.new
+        end
+        @mqtt_client = client
       end
 
-      def start
-        # Restart code execution from the beginning
+      def name
+        fbxfile[:name]
       end
 
-      def stop
-        # Stop code excution, but keep broker connection
-      end
-
-      def setup
-        mqtt_client.connect
+      def restart
+        # Stop + start
       end
 
       def shutdown
@@ -68,14 +109,47 @@ module Fancybox2
         exit 0
       end
 
-      ## MQTT Client callbacks
-
-      def on_client_connect
-        # Subscriptions
+      def start
+        # Start code execution from scratch
+        puts "START"
       end
 
+      def setup
+        mqtt_client.connect
+      end
+
+      def stop
+        # Stop code excution, but keep broker connection
+      end
+
+      ## MQTT Client callbacks
+
       def on_client_connack
-        # Make default subscriptions
+        # Setup default callbacks
+        default_topics.each do |topic|
+          unless topic.is_a? String
+            raise Exceptions::NotAValidSubscription.new topic
+          end
+          pieces = topic.split "/#{name}/"
+          action = pieces.last
+          unless action
+            raise Exceptions::NotAValidSubscription.new topic
+          end
+          if respond_to? action
+            mqtt_client.add_topic_callback topic do |packet|
+              if method(action).arity.abs > 0
+                send action, packet
+              else
+                send action
+              end
+            end
+          else
+            logger.warn "Handler not defined for default subscription #{topic}. Messages received on this topic will not be handled"
+          end
+        end
+
+        # Subscribe to all messages directed to me
+        mqtt_client.subscribe [Config::DEFAULT_TOPIC_FORMAT % [name, '#'], 2]
       end
 
       def on_client_suback
@@ -99,37 +173,6 @@ module Fancybox2
       def on_client_message
       end
 
-      def fbxfile
-        return @fbxfile if @fbxfile
-        if File.exists? fbxfile_path
-          @fbxfile = JSON.parse(File.read(fbxfile_path)).deep_symbolize_keys
-        else
-          raise Exceptions::FbxfileNotFound.new example_file_path
-        end
-        @fbxfile
-      end
-
-      def fbxfile=(hash_attributes)
-        raise ArgumentError, 'You must provide an Hash as argument' unless hash_attributes.is_a?(Hash)
-        @fbxfile = hash_attributes.deep_symbolize_keys
-      end
-
-      def fbxfile_path
-        # Tell if this is the Base class or an instance of a subclass
-        ancestors = self.class.ancestors[1..-1] # Exclude self from ancestors
-        if ancestors.include? Base
-          # I'm a subclass so Fbxfile.example should be in a precise location
-          Config::FBXFILE_DEFAULT_FILE_PATH
-        else
-          # I'm the Base class, use Fbxfile.example
-          "#{__dir__}/config/Fbxfile.example"
-        end
-      end
-
-      def fbxfile_path=(path)
-        @fbxfile_path = path
-      end
-
       private
 
       def mqtt_default_params
@@ -138,8 +181,8 @@ module Fancybox2
             port:           1883,
             mqtt_version:   '3.1.1',
             clean_session:  true,
-            persistent:     false,
-            blocking:       true,
+            persistent:     true,
+            blocking:       false,
             client_id:      nil,
             username:       nil,
             password:       nil,
@@ -148,16 +191,16 @@ module Fancybox2
             will_payload:   nil,
             will_qos:       0,
             will_retain:    false,
-            keep_alive:     10,
+            keep_alive:     7,
             ack_timeout:    5,
-            on_connack:     on_client_connack,
-            on_suback:      on_client_suback,
-            on_unsuback:    on_client_unsuback,
-            on_puback:      on_client_puback,
-            on_pubrel:      on_client_pubrel,
-            on_pubrec:      on_client_pubrec,
-            on_pubcomp:     on_client_pubcomp,
-            on_message:     on_client_message
+            on_connack:     proc { on_client_connack },
+            on_suback:      proc { on_client_suback },
+            on_unsuback:    proc { on_client_unsuback },
+            on_puback:      proc { on_client_puback },
+            on_pubrel:      proc { on_client_pubrel },
+            on_pubrec:      proc { on_client_pubrec },
+            on_pubcomp:     proc { on_client_pubcomp },
+            on_message:     proc { on_client_message }
         }
       end
 

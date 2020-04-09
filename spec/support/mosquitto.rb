@@ -4,7 +4,7 @@ class Mosquitto
   DEFAULT_PID_FILE_PATH = File.expand_path('../../tmp/mosquitto.pid', __FILE__)
   LISTENER_CONFIGS = {
       host: 'localhost',
-      port: 2888
+      port: 2883
   }
 
   def self.delete_pid_file(pid_file_path = DEFAULT_PID_FILE_PATH)
@@ -38,7 +38,7 @@ class Mosquitto
   end
 
   def self.stop(pid = self.pid)
-    Process.kill('INT', pid)
+    Process.kill('INT', pid) rescue nil
     self.delete_pid_file
   end
 

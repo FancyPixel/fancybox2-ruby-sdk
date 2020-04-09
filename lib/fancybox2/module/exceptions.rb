@@ -8,6 +8,20 @@ module Fancybox2
           super(message)
         end
       end
+
+      class NotValidMQTTClient < StandardError
+        def initialize(message = nil)
+          message = message || 'The provided MQTT client is not an instance of PahoMqtt::Client'
+          super(message)
+        end
+      end
+
+      class NotAValidSubscription < StandardError
+        def initialize(topic, message = nil)
+          message = message || "The subscription topic #{topic} is not valid"
+          super(message)
+        end
+      end
     end
   end
 end

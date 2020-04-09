@@ -13,3 +13,5 @@
 .ruby-version
 *.log
 *_log
+app.rb
+test.rb
