@@ -14,7 +14,7 @@ describe Fancybox2::Logger::JSONFormatter do
 
   describe '#call' do
     let(:formatted_severity) { 'WARN' }
-    let(:time) { Time.now }
+    let(:time) { Time.now.utc }
     let(:progname) { 'THE_PROGRAM' }
     let(:message) { 'A nice log message' }
 

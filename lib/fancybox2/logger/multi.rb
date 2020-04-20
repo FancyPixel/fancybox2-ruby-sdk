@@ -49,6 +49,10 @@ module Fancybox2
         @loggers.map(&:close)
       end
 
+      def default_log_level
+        'info'
+      end
+
       def escape_data=(value)
         if value
           @loggers.each do |logger|
@@ -114,7 +118,8 @@ module Fancybox2
         when :error,   ::Logger::ERROR,   'error'   then ::Logger::ERROR
         when :fatal,   ::Logger::FATAL,   'fatal'   then ::Logger::FATAL
         else
-          ::Logger::INFO
+          # puts "Fancybox2::Logger::Multi#normalize_log_level, log_level value '#{log_level.inspect}' not supported, defaulting to '#{default_log_level}'"
+          normalize_log_level(default_log_level)
         end
       end
     end

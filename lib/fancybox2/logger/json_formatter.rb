@@ -6,9 +6,9 @@ module Fancybox2
     class JSONFormatter < ::Logger::Formatter
       def call(severity, time, progname, msg)
         json = JSON.generate(
-            severity: severity,
-            time: format_datetime(time),
-            progname: progname,
+            level: severity,
+            timestamp: time.utc.strftime('%Y-%m-%dT%H:%M:%S.%3NZ'.freeze),
+            #progname: progname,
             message: msg,
             pid: Process.pid
         )

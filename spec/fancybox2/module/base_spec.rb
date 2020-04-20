@@ -2,13 +2,14 @@ require 'spec_helper'
 
 describe Fancybox2::Module::Base do
   let(:module_base_klass) { Fancybox2::Module::Base }
-  let(:module_base) { Fancybox2::Module::Base.new }
   let(:mqtt_client) { PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS }
+  let(:module_base) { Fancybox2::Module::Base.new }
   let(:mqtt_client_params) { { host: 'some_valid_host', port: 2000 } }
   let(:log_level) { Logger::UNKNOWN }
   let(:log_progname) { 'Fancy Program' }
   let(:logger) { Logger.new STDOUT }
-  let(:base_fbxfile) { JSON.load(File.read(File.expand_path('../config/Fbxfile.example', __FILE__))).deep_symbolize_keys }
+  let(:path_of_fbxfile_example) { Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH }
+  let(:example_fbxfile) { JSON.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
 
   context 'attr_accessors' do
     it { should have_attr_reader :logger }
@@ -33,7 +34,7 @@ describe Fancybox2::Module::Base do
 
     context 'allowed options' do
       context ':mqtt_client' do
-        it 'is expected to accept the option and set provided mqtt_client on instance' do
+        it 'is expected to accept the option and set its value on instance' do
           base_instance = module_base_klass.new mqtt_client: mqtt_client
           expect(base_instance.mqtt_client).to eq mqtt_client
         end
@@ -44,128 +45,112 @@ describe Fancybox2::Module::Base do
         end
       end
 
-      context ':mqtt_client_options' do
-        it 'is expected to accept the option and set @mqtt_client_params on instance' do
+      context ':mqtt_client_params' do
+        it 'is expected to accept the option and set its value on instance' do
           base_instance = module_base_klass.new mqtt_client_params: mqtt_client_params
-          expect(base_instance.instance_variable_get(:@mqtt_client_params)).to eq mqtt_client_params
+          expect(base_instance.instance_variable_get :@mqtt_client_params).to eq mqtt_client_params
         end
 
         it 'is expected to default to an empty Hash if the value is nil' do
           base_instance = module_base_klass.new mqtt_client_params: nil
-          expect(base_instance.instance_variable_get(:@mqtt_client_params)).to eq({})
+          expect(base_instance.instance_variable_get :@mqtt_client_params).to eq({})
         end
       end
 
       context ':log_level' do
-        it 'is expected to accept the option and set the value on its logger' do
+        it 'is expected to accept the option and set its value on instance' do
           base_instance = module_base_klass.new log_level: log_level
-          expect(base_instance.logger.level).to eq log_level
+          expect(base_instance.instance_variable_get :@log_level).to eq log_level
         end
 
-        it 'is expected to default to Logger::DEBUG if option is nil or not provided' do
-          base_instance = module_base_klass.new log_level: nil
-          expect(base_instance.logger.level).to eq Logger::DEBUG
+        it 'is expected to default to Logger::DEBUG if option is not provided' do
           base_instance = module_base_klass.new
-          expect(base_instance.logger.level).to eq Logger::DEBUG
+          expect(base_instance.instance_variable_get :@log_level).to eq Logger::DEBUG
         end
       end
 
       context ':log_progname' do
-        it 'is expected to accept the option and set the value on its logger' do
+        it 'is expected to accept the option and set its value on instance' do
           base_instance = module_base_klass.new log_progname: log_progname
-          expect(base_instance.logger.progname).to eq log_progname
+          expect(base_instance.instance_variable_get :@log_progname).to eq log_progname
         end
 
         it 'is expected to default to Fancybox2::Module::Base if option has not been provided' do
           base_instance = module_base_klass.new
-          expect(base_instance.logger.progname).to eq 'Fancybox2::Module::Base'
+          expect(base_instance.instance_variable_get :@log_progname).to eq 'Fancybox2::Module::Base'
         end
 
         it 'is expected to accept a nil value' do
           base_instance = module_base_klass.new log_progname: nil
-          expect(base_instance.logger.progname).to be_nil
+          expect(base_instance.instance_variable_get :@log_progname).to be_nil
         end
       end
 
-      it 'is expected to accept :logger option and set @logger in instance' do
+      it 'is expected to accept :logger option and set @logger on instance' do
         base_instance = module_base_klass.new logger: logger
         expect(base_instance.logger).to eq logger
+      end
+
+      it 'is expected to accept :fbxfile option and set @fbxfile on instance' do
+        fbxfile = { some: 'option' }
+        base_instance = module_base_klass.new fbxfile: fbxfile
+        expect(base_instance.fbxfile).to eq fbxfile
+      end
+
+      it 'is expected to accept :fbxfile_path option and set @fbxfile_path on instance' do
+        allow_any_instance_of(module_base_klass).to receive(:load_fbx_file).and_return({})
+        fbxfile_path = '/some/path'
+        base_instance = module_base_klass.new fbxfile_path: fbxfile_path
+        expect(base_instance.fbxfile_path).to eq fbxfile_path
+      end
+    end
+
+    describe '#on_action' do
+      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+      before { base_module.setup }
+
+      it 'is expected to ad da topic callback on mqtt_client' do
+        expect { base_module.on_action :some_action, proc {} }
+            .to change(base_module.mqtt_client.registered_callback, :size).by 1
+      end
+    end
+
+    describe '#alive' do
+
+    end
+
+    describe '#default_actions' do
+      it 'is expected to return an array of default actions' do
+        expect(module_base.default_actions).to eq %w(start  stop  restart  shutdown  logger)
       end
     end
 
     describe '#name' do
-      it 'is expected to return module name present on config/Fbxfile.example' do
-        expect(module_base.name).to eq base_fbxfile[:name]
+      it 'is expected to return module name present on config/Fbxfile' do
+        expect(module_base.name).to eq example_fbxfile[:name]
       end
     end
 
-    describe '#mqtt_client' do
-      context 'when the client is set on the instance' do
-        before { module_base.mqtt_client = mqtt_client }
+    describe '#message_to' do
 
-        it 'is expected to return provided mqtt_client' do
-          expect(module_base.mqtt_client).to eq mqtt_client
-        end
-      end
-
-      context 'when the client is not provided' do
-        it 'is expected to create a new one' do
-          expect(module_base.mqtt_client).to be_a PahoMqtt::Client
-          expect(module_base.mqtt_client).to_not eq mqtt_client
-        end
-      end
     end
 
-    describe '#mqtt_client=(client)' do
-      let(:not_a_valid_client) { 'not a client at all' }
+    describe '#fbxfile_path' do
+      context 'when the @fbxfile_path variable is set on the instance' do
+        let(:file_path) { '/some/path' }
 
-      it 'is expected to check that the provided client is a PahoMqtt::Client' do
-        expect { module_base.mqtt_client = not_a_valid_client }.to raise_error Fancybox2::Module::Exceptions::NotValidMQTTClient
-      end
+        before { module_base.instance_variable_set(:@fbxfile_path, file_path) }
 
-      it 'is expected to populate @mqtt_client instance variable with the provided client' do
-        module_base.mqtt_client = mqtt_client
-        expect(module_base.instance_variable_get :@mqtt_client).to eq mqtt_client
-      end
-    end
-
-    describe '#fbxfile' do
-      let(:fbxfile_mock) { { name: 'some_name' } }
-
-      context 'when the variable is set on the instance' do
-        before { module_base.fbxfile = fbxfile_mock }
-
-        it 'is expected to return set content' do
-          expect(module_base.fbxfile).to eq fbxfile_mock
+        it 'is expected to return the set variable content' do
+          expect(module_base.fbxfile_path).to eq file_path
         end
       end
 
-      context 'when the @fbxfile variable value is not yet populated' do
-        context 'if the Fbxfile exists' do
-          it 'is expected to call #fbxfile_path' do
-            expect(module_base).to receive(:fbxfile_path).at_least(:once).and_call_original
-            module_base.fbxfile
-          end
-
-          it 'is expected to populate @fbxfile variable' do
-            fbxfile_var_value = proc { module_base.instance_variable_get(:@fbxfile) }
-            expect { module_base.fbxfile }.to change { fbxfile_var_value.call }
-            expect(fbxfile_var_value.call).to eq base_fbxfile
-          end
-        end
-
-        context 'if the Fbxfile does not exist' do
-          before { allow(module_base).to receive(:fbxfile_path).and_return('not/a/valid/path') }
-
-          it 'is expected to raise a FbxfileNotFound error' do
-            expect { module_base.fbxfile }.to raise_error Fancybox2::Module::Exceptions::FbxfileNotFound
-          end
+      context 'when the @fbxfile_path variable value is not yet populated' do
+        it 'is expected to return Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH' do
+          expect(module_base.fbxfile_path).to eq Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH
         end
       end
-    end
-
-    describe '#fbxfile=' do
-
     end
   end
 end

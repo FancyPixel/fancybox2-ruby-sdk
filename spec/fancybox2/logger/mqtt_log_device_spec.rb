@@ -22,7 +22,7 @@ describe Fancybox2::Logger::MQTTLogDevice do
       expect { Fancybox2::Logger::MQTTLogDevice.new client: 'not_a_client' }.to raise_error ArgumentError
     end
 
-    it "is expected to set accept 'topic' param and set its value on instance" do
+    it "is expected to require 'topic' param and set its value on instance" do
       logdev = Fancybox2::Logger::MQTTLogDevice.new client: mqtt_client, topic: topic
       expect(logdev.topic).to eq topic
     end

@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "language": "ruby",
+  "name": "ruby_base_module",
+  "version": "0",
+  "command": "bundle exec ruby",
+  "args": [],
+  "options": {}
+}
