@@ -17,11 +17,37 @@ module Fancybox2
         @fbxfile = check_and_return_fbxfile options.fetch(:fbxfile, load_fbx_file)
         @mqtt_client_params = options[:mqtt_client_params] || {}
         @mqtt_client = options[:mqtt_client] || build_mqtt_client
-        @log_level = options.fetch :log_level, ::Logger::DEBUG
+        @log_level = options.fetch :log_level, ::Logger::INFO
         @log_progname = options.fetch :log_progname, 'Fancybox2::Module::Base'
         @logger = options.fetch :logger, create_default_logger
         @status = :stopped
         @alive_task = nil
+      end
+      
+      def default_actions
+        {
+            start:    proc { |packet| start packet },
+            stop:     proc { stop },
+            restart:  proc { |packet| restart packet },
+            shutdown: proc { shutdown },
+            logger:   proc { |packet| action_logger packet }
+        }
+      end
+
+      def message_to(dest, action = '', payload = nil, retain = false, qos = 2)
+        topic = topic_for dest: dest, action: action
+        payload = case payload
+                  when Hash, Array
+                    payload.to_json
+                  else
+                    payload
+                  end
+        logger.debug "#{self.class}#message_to '#{topic}' payload: #{payload}"
+        mqtt_client.publish topic, payload, retain, qos
+      end
+
+      def name
+        fbxfile[:name]
       end
 
       def on_action(action, callback = nil, &block)
@@ -36,30 +62,6 @@ module Fancybox2
             callback.call packet
           end
         end
-      end
-      
-      def default_actions
-        {
-            start:    proc { |packet| start packet },
-            stop:     proc { stop },
-            restart:  proc { |packet| restart packet },
-            shutdown: proc { shutdown },
-            logger:   proc { |packet| action_logger packet }
-        }
-      end
-
-      def name
-        fbxfile[:name]
-      end
-
-      def message_to(dest, action = '', payload = nil, retain = false, qos = 2)
-        topic = topic_for dest: dest, action: action
-        payload = case payload
-                  when Hash, Array
-                    payload.to_json
-                  end
-        logger.debug "#{self.class}#message_to '#{topic}' payload: #{payload}"
-        mqtt_client.publish topic, payload, retain, qos
       end
 
       def remove_action(action)
@@ -76,6 +78,7 @@ module Fancybox2
       def send_alive(interval: 5000)
         # Interval is expected to be msec, so convert it to secs
         interval /= 1000
+        @alive_task.shutdown if @alive_task
         @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
           message_to :core, :alive, {
               status: @status,

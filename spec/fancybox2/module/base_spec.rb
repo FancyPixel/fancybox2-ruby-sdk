@@ -63,9 +63,9 @@ describe Fancybox2::Module::Base do
           expect(base_instance.instance_variable_get :@log_level).to eq log_level
         end
 
-        it 'is expected to default to Logger::DEBUG if option is not provided' do
+        it 'is expected to default to Logger::INFO if option is not provided' do
           base_instance = module_base_klass.new
-          expect(base_instance.instance_variable_get :@log_level).to eq Logger::DEBUG
+          expect(base_instance.instance_variable_get :@log_level).to eq Logger::INFO
         end
       end
 
@@ -105,23 +105,26 @@ describe Fancybox2::Module::Base do
       end
     end
 
-    describe '#on_action' do
-      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
-      before { base_module.setup }
-
-      it 'is expected to ad da topic callback on mqtt_client' do
-        expect { base_module.on_action :some_action, proc {} }
-            .to change(base_module.mqtt_client.registered_callback, :size).by 1
+    describe '#default_actions' do
+      it 'is expected to return an Hash of default actions' do
+        expect(module_base.default_actions.keys).to include :start, :stop, :restart, :shutdown, :logger
       end
     end
 
-    describe '#alive' do
+    describe '#message_to' do
+      let(:destination) { :core }
+      let(:action) { :test }
+      let(:payload) { '' }
+      let(:retain) { false }
+      let(:qos) { 2 }
+      let(:topic) { module_base.topic_for(dest: destination, action: action) }
 
-    end
+      before { module_base.mqtt_client.connect }
 
-    describe '#default_actions' do
-      it 'is expected to return an array of default actions' do
-        expect(module_base.default_actions).to eq %w(start  stop  restart  shutdown  logger)
+      it 'is expected to call mqtt_client#publish' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
+        module_base.message_to :core, :test, payload, retain, qos
+
       end
     end
 
@@ -131,8 +134,14 @@ describe Fancybox2::Module::Base do
       end
     end
 
-    describe '#message_to' do
+    describe '#on_action' do
+      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+      before { base_module.setup }
 
+      it 'is expected to ad da topic callback on mqtt_client' do
+        expect { base_module.on_action :some_action, proc {} }
+            .to change(base_module.mqtt_client.registered_callback, :size).by 1
+      end
     end
 
     describe '#fbxfile_path' do
