@@ -22,7 +22,6 @@ module Fancybox2
         @logger = options.fetch :logger, create_default_logger
         @status = :stopped
         @alive_task = nil
-        @on_shutdown = nil
       end
       
       def default_actions
@@ -31,7 +30,7 @@ module Fancybox2
             stop:     proc { on_stop },
             restart:  proc { |packet| on_restart packet },
             shutdown: proc { on_shutdown },
-            logger:   proc { |packet| action_logger packet }
+            logger:   proc { |packet| on_logger packet }
         }
       end
 
@@ -65,43 +64,33 @@ module Fancybox2
         end
       end
 
-      def remove_action(action)
-        topic = topic_for action: action
-        mqtt_client.remove_topic_callback topic
+      def on_logger(packet = nil, &block)
+        if block_given?
+          @on_logger = block
+          return
+        end
+        @on_logger.call(packet) if @on_logger
+        configs = packet.payload
+        logger.level = configs['level'] if configs['level']
       end
 
-      def on_restart(packet)
+      def on_logger=(callback)
+        @on_logger = callback if callback.is_a?(Proc)
+      end
+
+      def on_restart(packet = nil, &block)
+        if block_given?
+          @on_restart = block
+          return
+        end
+        @on_restart.call(packet) if @on_restart
         # Stop + start
-        stop
-        start packet
+        on_stop
+        on_start packet
       end
 
-      def start_sending_alive(interval: 5000)
-        # Interval is expected to be msec, so convert it to secs
-        interval /= 1000
-        @alive_task.shutdown if @alive_task
-        @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
-          message_to :core, :alive, {
-              status: @status,
-              lastSeen: Time.now.utc
-          }
-        end
-        @alive_task.execute
-      end
-
-      def setup
-        unless @setted_up
-          begin
-            logger.debug 'Connecting to the broker...'
-            mqtt_client.connect
-          rescue PahoMqtt::Exception => e
-            logger.error "Error while connecting to the broker: #{e.message}"
-            retry
-          end
-
-          # task = Concurrent::TimerTask.new{ puts 'Boom!' }
-          @setted_up = true
-        end
+      def on_restart=(callback)
+        @on_restart = callback if callback.is_a?(Proc)
       end
 
       def on_shutdown(&block)
@@ -138,7 +127,14 @@ module Fancybox2
         @on_shutdown = callback if callback.is_a?(Proc)
       end
 
-      def on_start(packet)
+      def on_start(packet = nil, &block)
+        if block_given?
+          @on_start = block
+          return
+        end
+        # Call user code
+        @on_start.call(packet) if @on_start
+
         configs = packet.payload
         # Start code execution from scratch
         logger.debug "Received 'start'"
@@ -146,9 +142,55 @@ module Fancybox2
         start_sending_alive interval: configs['aliveTimeout']
       end
 
-      def on_stop
+      def on_start=(callback)
+        @on_start = callback if callback.is_a?(Proc)
+      end
+
+      def on_stop(&block)
+        if block_given?
+          @on_stop = block
+          return
+        end
+        @on_stop.call if @on_stop
         @status = :stopped
         # Stop code excution, but keep broker connection and continue to send alive
+      end
+
+      def on_stop=(callback)
+        @on_stop = callback if callback.is_a?(Proc)
+      end
+
+      def remove_action(action)
+        topic = topic_for action: action
+        mqtt_client.remove_topic_callback topic
+      end
+
+      def start_sending_alive(interval: 5000)
+        # Interval is expected to be msec, so convert it to secs
+        interval /= 1000
+        @alive_task.shutdown if @alive_task
+        @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
+          message_to :core, :alive, {
+              status: @status,
+              lastSeen: Time.now.utc
+          }
+        end
+        @alive_task.execute
+      end
+
+      def setup
+        unless @setted_up
+          begin
+            logger.debug 'Connecting to the broker...'
+            mqtt_client.connect
+          rescue PahoMqtt::Exception => e
+            logger.error "Error while connecting to the broker: #{e.message}"
+            retry
+          end
+
+          # task = Concurrent::TimerTask.new{ puts 'Boom!' }
+          @setted_up = true
+        end
       end
 
       def topic_for(dest: nil, action: nil)

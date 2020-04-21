@@ -156,6 +156,26 @@ describe Fancybox2::Module::Base do
       end
     end
 
+    describe '#on_logger' do
+      let(:code_proc) { proc { puts 'hello' } }
+      let(:packet) { double('Some packet', payload: { 'level' => 'debug' }) }
+
+      it 'is expected to accept a block and set its value on @on_logger' do
+        module_base.on_logger &code_proc
+        expect(module_base.instance_variable_get :@on_logger).to eq code_proc
+      end
+
+      it 'is expected to call provided block with packet as argument' do
+        module_base.on_logger &code_proc
+        expect(code_proc).to receive(:call).with packet
+        module_base.on_logger packet
+      end
+
+      it 'is expected to set the log level if present into the packet' do
+        expect{ module_base.on_logger packet }.to change(module_base.logger, :level).from(Logger::INFO).to Logger::DEBUG
+      end
+    end
+
     describe '#remove_action' do
       let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
       let(:action) { 'some_action' }
@@ -171,18 +191,18 @@ describe Fancybox2::Module::Base do
       end
     end
 
-    describe '#restart' do
-      let(:packet) { "fake packet" }
+    describe '#on_restart' do
+      let(:packet) { 'fake packet' }
 
       it 'is expected to call #stop' do
-        allow(module_base).to receive(:start).and_return(nil)
-        expect(module_base).to receive(:stop)
-        module_base.restart(packet)
+        allow(module_base).to receive(:on_start).and_return(nil)
+        expect(module_base).to receive(:on_stop)
+        module_base.on_restart(packet)
       end
 
       it 'is expected to call #start' do
-        expect(module_base).to receive(:start).with(packet)
-        module_base.restart(packet)
+        expect(module_base).to receive(:on_start).with(packet)
+        module_base.on_restart(packet)
       end
     end
 
@@ -224,7 +244,7 @@ describe Fancybox2::Module::Base do
       end
     end
 
-    describe '#shutdown' do
+    describe '#on_shutdown' do
       before do
         module_base.setup
         module_base.start_sending_alive interval: 1000
@@ -232,20 +252,22 @@ describe Fancybox2::Module::Base do
 
       it 'is expected to call @alive_task@shutdown' do
         expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
-        module_base.shutdown
+        module_base.on_shutdown
       end
 
-      it 'is expected to signal core shutdown'
-
-      it 'is expected to call mqtt_client#shutdown' do
-        expect(mqtt_client).to receive :shutdown
-        module_base.shutdown
+      it 'is expected to signal core shutdown' do
+        expect(module_base).to receive(:message_to).with :core, :shutdown
       end
 
-      it 'is expected to exit with a 0 status code' do
-        expect(Kernel).to receive(:exit).with 0
-        module_base.shutdown
+      it 'is expected to call mqtt_client#disconnect' do
+        expect(mqtt_client).to receive :disconnect
+        module_base.on_shutdown
       end
+
+      # it 'is expected to exit with a 0 status code' do
+      #   expect(Kernel).to receive(:exit).with 0
+      #   module_base.shutdown
+      # end
     end
 
     describe '#fbxfile_path' do

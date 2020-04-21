@@ -64,7 +64,7 @@ module Fancybox2
       end
 
       def level=(level)
-        @level = level
+        @level = normalize_log_level(level)
         @loggers.each { |logger| logger.level = level }
       end
 
