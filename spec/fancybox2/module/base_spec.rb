@@ -3,7 +3,7 @@ require 'spec_helper'
 describe Fancybox2::Module::Base do
   let(:module_base_klass) { Fancybox2::Module::Base }
   let(:mqtt_client) { PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS }
-  let(:module_base) { Fancybox2::Module::Base.new }
+  let(:module_base) { Fancybox2::Module::Base.new mqtt_client: mqtt_client }
   let(:mqtt_client_params) { { host: 'some_valid_host', port: 2000 } }
   let(:log_level) { Logger::UNKNOWN }
   let(:log_progname) { 'Fancy Program' }
@@ -115,6 +115,8 @@ describe Fancybox2::Module::Base do
       let(:destination) { :core }
       let(:action) { :test }
       let(:payload) { '' }
+      let(:hash_payload) { { some: 'value' } }
+      let(:array_payload) { ['some', 'values'] }
       let(:retain) { false }
       let(:qos) { 2 }
       let(:topic) { module_base.topic_for(dest: destination, action: action) }
@@ -124,7 +126,16 @@ describe Fancybox2::Module::Base do
       it 'is expected to call mqtt_client#publish' do
         expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
         module_base.message_to :core, :test, payload, retain, qos
+      end
 
+      it 'is expected to serialize as JSON an Hash payload' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, hash_payload.to_json, retain, qos
+        module_base.message_to :core, :test, hash_payload
+      end
+
+      it 'is expected to serialize as JSON an Array payload' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, array_payload.to_json, retain, qos
+        module_base.message_to :core, :test, array_payload
       end
     end
 
@@ -136,11 +147,62 @@ describe Fancybox2::Module::Base do
 
     describe '#on_action' do
       let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
-      before { base_module.setup }
 
-      it 'is expected to ad da topic callback on mqtt_client' do
+      before { mqtt_client.connect }
+
+      it 'is expected to add a topic callback on mqtt_client' do
         expect { base_module.on_action :some_action, proc {} }
             .to change(base_module.mqtt_client.registered_callback, :size).by 1
+      end
+    end
+
+    describe '#remove_action' do
+      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+      let(:action) { 'some_action' }
+
+      before do
+        mqtt_client.connect
+        base_module.on_action action { }
+      end
+
+      it 'is expectedt to remove a topic callback on mqtt_client' do
+        expect { base_module.remove_action action }
+            .to change(base_module.mqtt_client.registered_callback, :size).by(-1)
+      end
+    end
+
+    describe '#restart' do
+      let(:packet) { "fake packet" }
+
+      it 'is expected to call #stop' do
+        allow(module_base).to receive(:start).and_return(nil)
+        expect(module_base).to receive(:stop)
+        module_base.restart(packet)
+      end
+
+      it 'is expected to call #start' do
+        expect(module_base).to receive(:start).with(packet)
+        module_base.restart(packet)
+      end
+    end
+
+    describe '#start_sending_alive' do
+      let(:interval) { 1000 }
+
+      it 'is expected to change @alive_task value' do
+        before_value = module_base.instance_variable_get :@alive_task
+        module_base.start_sending_alive(interval: interval)
+        expect(module_base.instance_variable_get :@alive_task).to_not eq before_value
+      end
+
+      it 'is expected to populate @alive_task variable with an instance of Concurrent::TimerTask' do
+        expect(module_base.start_sending_alive(interval: interval)).to be_a Concurrent::TimerTask
+      end
+
+      it 'is expected to call #shutdown on @alive_task if the task already existed' do
+        module_base.start_sending_alive interval: interval
+        expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
+        module_base.start_sending_alive interval: interval
       end
     end
 

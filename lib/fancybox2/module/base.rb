@@ -75,7 +75,7 @@ module Fancybox2
         start packet
       end
 
-      def send_alive(interval: 5000)
+      def start_sending_alive(interval: 5000)
         # Interval is expected to be msec, so convert it to secs
         interval /= 1000
         @alive_task.shutdown if @alive_task
@@ -119,7 +119,7 @@ module Fancybox2
         # Start code execution from scratch
         logger.debug "Received 'start'"
         @status = :started
-        send_alive interval: configs['aliveTimeout']
+        start_sending_alive interval: configs['aliveTimeout']
       end
 
       def stop

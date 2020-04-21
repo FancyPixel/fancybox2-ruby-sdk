@@ -11,7 +11,8 @@ RSpec.configure do |config|
   Mosquitto.kill_zombies
 
   config.before(:suite) do
-    Mosquitto.start
+    Mosquitto.start; sleep(0.5) # Give time to mosquitto to startup
+
   end
 
   config.after(:suite) do
