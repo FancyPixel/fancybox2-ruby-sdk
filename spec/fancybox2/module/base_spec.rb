@@ -206,6 +206,48 @@ describe Fancybox2::Module::Base do
       end
     end
 
+    describe '#setup' do
+      context 'when #setup has never been called' do
+        it 'is expected to call mqtt_client#connect' do
+          expect(mqtt_client).to receive :connect
+          module_base.setup
+        end
+      end
+
+      context 'when #setup has already been called' do
+        before { module_base.setup }
+
+        it "is expected to don't call mqtt_client#connect" do
+          expect(mqtt_client).to_not receive :connect
+          module_base.setup
+        end
+      end
+    end
+
+    describe '#shutdown' do
+      before do
+        module_base.setup
+        module_base.start_sending_alive interval: 1000
+      end
+
+      it 'is expected to call @alive_task@shutdown' do
+        expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
+        module_base.shutdown
+      end
+
+      it 'is expected to signal core shutdown'
+
+      it 'is expected to call mqtt_client#shutdown' do
+        expect(mqtt_client).to receive :shutdown
+        module_base.shutdown
+      end
+
+      it 'is expected to exit with a 0 status code' do
+        expect(Kernel).to receive(:exit).with 0
+        module_base.shutdown
+      end
+    end
+
     describe '#fbxfile_path' do
       context 'when the @fbxfile_path variable is set on the instance' do
         let(:file_path) { '/some/path' }

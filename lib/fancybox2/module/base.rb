@@ -22,14 +22,15 @@ module Fancybox2
         @logger = options.fetch :logger, create_default_logger
         @status = :stopped
         @alive_task = nil
+        @on_shutdown = nil
       end
       
       def default_actions
         {
-            start:    proc { |packet| start packet },
-            stop:     proc { stop },
-            restart:  proc { |packet| restart packet },
-            shutdown: proc { shutdown },
+            start:    proc { |packet| on_start packet },
+            stop:     proc { on_stop },
+            restart:  proc { |packet| on_restart packet },
+            shutdown: proc { on_shutdown },
             logger:   proc { |packet| action_logger packet }
         }
       end
@@ -69,7 +70,7 @@ module Fancybox2
         mqtt_client.remove_topic_callback topic
       end
 
-      def restart(packet)
+      def on_restart(packet)
         # Stop + start
         stop
         start packet
@@ -103,18 +104,41 @@ module Fancybox2
         end
       end
 
-      def shutdown
-        logger.debug "Received 'shutdown'"
-        # Graceful shutdown
-        # Do something
-        # TODO: signal CORE that I've correctly executed a graceful shutdown (goodbye message)
-        # Wait for the receive of a pubrec for this message, then...
+      def on_shutdown(&block)
+        if block_given?
+          @on_shutdown = block
+          return
+        end
+        logger.debug "Received 'shutdown' command"
+        shutdown_ok = true
+        begin
+          # Call user code if any
+          @on_shutdown.call if @on_shutdown
+        rescue StandardError => e
+          logger.error "Error during shutdown: #{e.message}"
+          shutdown_ok = false
+        end
+
         @alive_task.shutdown
+        # Signal core that we've executed shutdown operations.
+        # This message is not mandatory, so keep it simple
+        shutdown_message = shutdown_ok ? 'ok' : 'nok'
+        logger.debug "Sending shutdown message to core with status '#{shutdown_message}'"
+        message_to :core, :shutdown, { status: shutdown_message }
+        sleep 0.1 # Wait some time for the core to receive the message
+        # Gracefully disconnect from broker and exit
+        logger.debug 'Disconnecting from broker'
         mqtt_client.disconnect
-        exit 0
+        status_code = shutdown_ok ? 0 : 1
+        logger.debug "Exiting with status code #{status_code}"
+        exit status_code
       end
 
-      def start(packet)
+      def on_shutdown=(callback)
+        @on_shutdown = callback if callback.is_a?(Proc)
+      end
+
+      def on_start(packet)
         configs = packet.payload
         # Start code execution from scratch
         logger.debug "Received 'start'"
@@ -122,7 +146,7 @@ module Fancybox2
         start_sending_alive interval: configs['aliveTimeout']
       end
 
-      def stop
+      def on_stop
         @status = :stopped
         # Stop code excution, but keep broker connection and continue to send alive
       end
@@ -163,6 +187,7 @@ module Fancybox2
         mqtt_client.subscribe [topic_for(action: '#'), 2]
       end
 
+      # @note Call super if you override this method
       def on_client_suback
         # Client subscribed, we're ready to rock -> Tell core
         logger.debug 'Subscriptions done'
@@ -170,22 +195,28 @@ module Fancybox2
         message_to :core, :ready
       end
 
+      # @note Call super if you override this method
       def on_client_unsuback
       end
 
-      def on_client_puback
+      # @note Call super if you override this method
+      def on_client_puback(message)
       end
 
-      def on_client_pubrel
+      # @note Call super if you override this method
+      def on_client_pubrel(message)
       end
 
-      def on_client_pubrec
+      # @note Call super if you override this method
+      def on_client_pubrec(message)
       end
 
-      def on_client_pubcomp
+      # @note Call super if you override this method
+      def on_client_pubcomp(message)
       end
 
-      def on_client_message
+      # @note Call super if you override this method
+      def on_client_message(message)
       end
 
       private
@@ -242,11 +273,11 @@ module Fancybox2
             on_connack:       proc { on_client_connack },
             on_suback:        proc { on_client_suback },
             on_unsuback:      proc { on_client_unsuback },
-            on_puback:        proc { on_client_puback },
-            on_pubrel:        proc { on_client_pubrel },
-            on_pubrec:        proc { on_client_pubrec },
-            on_pubcomp:       proc { on_client_pubcomp },
-            on_message:       proc { on_client_message }
+            on_puback:        proc { |msg| on_client_puback msg },
+            on_pubrel:        proc { |msg| on_client_pubrel msg },
+            on_pubrec:        proc { |msg| on_client_pubrec msg },
+            on_pubcomp:       proc { |msg| on_client_pubcomp msg },
+            on_message:       proc { |msg| on_client_message msg }
         }
       end
 
