@@ -246,6 +246,8 @@ describe Fancybox2::Module::Base do
         end
 
         it 'is expected to rescue any StandardError that may occur during user code execution' do
+          # Temporary suppress error log messages
+          allow(module_base.logger).to receive(:error).and_return nil
           on_shutdown = module_base.instance_variable_get :@on_shutdown
           allow(on_shutdown).to receive(:call).and_raise(StandardError)
           expect { module_base.on_shutdown }.to_not raise_error
@@ -442,6 +444,75 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#on_client_connack' do
-    
+    before { module_base.mqtt_client.connect }
+
+    it 'is expected to call #on_action for each action configured in #default_actions' do
+      expect(module_base).to receive(:on_action).exactly(module_base.default_actions.keys.size).times
+      module_base.on_client_connack
+    end
+
+    it 'is expected to call #mqtt_client#subscribe with appropriate params' do
+      expect(module_base.mqtt_client).to receive(:subscribe).with([module_base.topic_for(action: '#'), 2])
+      module_base.on_client_connack
+    end
+  end
+
+  describe '#on_client_suback' do
+    it 'is expected to signal core of module readiness' do
+      expect(module_base).to receive(:message_to).with(:core, :ready)
+      module_base.on_client_suback
+    end
+  end
+
+  context 'private methods' do
+
+    describe '#build_mqtt_client' do
+      it 'is expected to return a PahoMqtt::Client instance' do
+        expect(module_base.send :build_mqtt_client).to be_a PahoMqtt::Client
+      end
+
+      it 'is expected to call #mqtt_params' do
+        expect(module_base).to receive(:mqtt_params)
+        module_base.send :build_mqtt_client
+      end
+    end
+
+    describe '#check_and_return_fbxfile' do
+      let(:fake_fbxfile_content) { { a: 1, 'b' => 2 } }
+
+      it 'is expected to return an Hash' do
+        expect(module_base.send(:check_and_return_fbxfile, fake_fbxfile_content)).to be_a Hash
+      end
+
+      it 'is expected to return an Hash with all symbolized keys' do
+        expect(module_base.send(:check_and_return_fbxfile, fake_fbxfile_content).keys).to all(be_a Symbol)
+      end
+
+      it 'is expected to raise an ArgumentError if provided param is not an Hash' do
+        expect { module_base.send :check_and_return_fbxfile, 'not an Hash' }.to raise_error ArgumentError
+      end
+    end
+
+    describe '#create_default_logger' do
+      it 'is expected to return a Fancybox2::Logger::Multi instance' do
+        expect(module_base.send :create_default_logger).to be_a Fancybox2::Logger::Multi
+      end
+
+      it 'is expected the returned Multi logger includes a STDOUT and a MQTT broker logger' do
+        loggers = module_base.send(:create_default_logger).loggers
+        expect(loggers.first.instance_variable_get(:@logdev).dev).to eq STDOUT
+        expect(loggers.last.instance_variable_get(:@logdev).dev).to be_a Fancybox2::Logger::MQTTLogDevice
+      end
+
+      it 'is expected the broker logger to have a Fancybox2::Logger::JSONFormatter formatter' do
+        loggers = module_base.send(:create_default_logger).loggers
+        expect(loggers.last.formatter).to be_a Fancybox2::Logger::JSONFormatter
+      end
+
+      it 'is expected the broker logdev to use the module_base mqtt_client' do
+        loggers = module_base.send(:create_default_logger).loggers
+        expect(loggers.last.instance_variable_get(:@logdev).dev.client).to eq module_base.mqtt_client
+      end
+    end
   end
 end
