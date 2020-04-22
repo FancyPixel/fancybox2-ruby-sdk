@@ -139,7 +139,7 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#name' do
-    it 'is expected to return module name present on config/Fbxfile' do
+    it 'is expected to return module name present on Fbxfile' do
       expect(module_base.name).to eq example_fbxfile[:name]
     end
   end
