@@ -3,7 +3,7 @@ module Fancybox2
     class Config
 
       FBXFILE_DEFAULT_FILE_PATH = File.expand_path 'Fbxfile.json.example', __dir__
-      DEFAULT_TOPIC_FORMAT = '%smodules/%s/%s'
+      DEFAULT_TOPIC_FORMAT = '%s%s/%s/%s'
 
     end
   end

@@ -193,23 +193,25 @@ module Fancybox2
             retry
           end
 
-          # task = Concurrent::TimerTask.new{ puts 'Boom!' }
           @setted_up = true
         end
       end
 
-      def topic_for(dest: nil, action: nil)
-        dest = dest.to_s
+      def topic_for(dest: nil, action: nil, dest_type: :modules)
+        module_name = dest = dest.to_s
         action = action.to_s
-        # Tell if the topic is "for the Core" or "for some other module"
+        dest_type = dest_type.to_s
         core_string = ''
-        module_name = self.name
+        # Tell if the topic is "for the Core" or "for some other module"
         case dest
         when 'core'
           core_string = 'core/'
+          module_name = self.name
+        when ''
+          module_name = self.name
         end
 
-        Config::DEFAULT_TOPIC_FORMAT % [core_string, module_name, action]
+        Config::DEFAULT_TOPIC_FORMAT % [core_string, dest_type, module_name, action]
       end
 
       ## MQTT Client callbacks
