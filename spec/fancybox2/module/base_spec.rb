@@ -102,11 +102,11 @@ describe Fancybox2::Module::Base do
         expect(base_instance.fbxfile_path).to eq fbxfile_path
       end
     end
+  end
 
-    describe '#default_actions' do
-      it 'is expected to return an Hash of default actions' do
-        expect(module_base.default_actions.keys).to include :start, :stop, :restart, :shutdown, :logger
-      end
+  describe '#default_actions' do
+    it 'is expected to return an Hash of default actions' do
+      expect(module_base.default_actions.keys).to include :start, :stop, :restart, :shutdown, :logger
     end
   end
 
@@ -172,6 +172,44 @@ describe Fancybox2::Module::Base do
 
     it 'is expected to set the log level if present into the packet' do
       expect{ module_base.on_logger packet }.to change(module_base.logger, :level).from(Logger::INFO).to Logger::DEBUG
+    end
+  end
+
+  describe '#on_logger=' do
+    let(:callback) { proc { puts 'hello' } }
+
+    it 'is expected to accept a callback and assign it to @on_logger' do
+      module_base.on_logger = callback
+      expect(module_base.instance_variable_get :@on_logger).to eq callback
+    end
+  end
+
+  describe '#on_restart' do
+    let(:packet) { double('Some packet', payload: { 'aliveTimeout' => 1000 }) }
+
+    context 'when a block is provided' do
+      let(:block) { proc { puts 'hello' } }
+
+      it 'is expected to accept a block and set its value on @on_restart' do
+        module_base.on_restart(&block)
+        expect(module_base.instance_variable_get :@on_restart).to eq block
+      end
+
+      it 'is expected to call provided block with packet as argument' do
+        module_base.on_restart(&block)
+        expect(block).to receive(:call).with packet
+        module_base.on_restart packet
+      end
+    end
+
+    it 'is expected to call #on_stop' do
+      expect(module_base).to receive(:on_stop)
+      module_base.on_restart packet
+    end
+
+    it 'is expected to call #on_start with packet as argument' do
+      expect(module_base).to receive(:on_start).with packet
+      module_base.on_restart packet
     end
   end
 
