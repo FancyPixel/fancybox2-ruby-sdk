@@ -250,6 +250,30 @@ describe Fancybox2::Module::Base do
       allow(module_base).to receive(:exit).with(any_args).and_return false
     end
 
+    context 'when a block is provided' do
+      let(:block) { proc { puts 'something' } }
+
+      before { module_base.on_shutdown(&block) }
+
+      it 'is expected to assign the block to @on_shutdown' do
+        expect(module_base.instance_variable_get :@on_shutdown).to eq block
+      end
+
+      context 'when a shutdown command is received' do
+        it 'is expected to call user code if provided' do
+          on_shutdown = module_base.instance_variable_get :@on_shutdown
+          expect(on_shutdown).to receive(:call)
+          module_base.on_shutdown
+        end
+
+        it 'is expected to rescue any StandardError that may occur during user code execution' do
+          on_shutdown = module_base.instance_variable_get :@on_shutdown
+          allow(on_shutdown).to receive(:call).and_raise(StandardError)
+          expect { module_base.on_shutdown }.to_not raise_error
+        end
+      end
+    end
+
     it 'is expected to call @alive_task#shutdown' do
       expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
       module_base.on_shutdown

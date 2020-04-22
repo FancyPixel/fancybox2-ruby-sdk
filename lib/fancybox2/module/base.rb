@@ -104,21 +104,25 @@ module Fancybox2
           # Call user code if any
           @on_shutdown.call if @on_shutdown
         rescue StandardError => e
-          puts "WTF: #{e.message}"
           logger.error "Error during shutdown: #{e.message}"
           shutdown_ok = false
         end
 
+        # Stop sending alive messages
         @alive_task.shutdown
+
         # Signal core that we've executed shutdown operations.
         # This message is not mandatory, so keep it simple
         shutdown_message = shutdown_ok ? 'ok' : 'nok'
         logger.debug "Sending shutdown message to core with status '#{shutdown_message}'"
         message_to :core, :shutdown, { status: shutdown_message }
-        sleep 0.1 # Wait some time for the core to receive the message
+        sleep 0.1 # Wait some time in order to be sure that the message has been published (message is not mandatory)
+
         # Gracefully disconnect from broker and exit
         logger.debug 'Disconnecting from broker'
         mqtt_client.disconnect
+
+        # Exit from process
         status_code = shutdown_ok ? 0 : 1
         logger.debug "Exiting with status code #{status_code}"
         exit status_code
