@@ -104,6 +104,7 @@ module Fancybox2
           # Call user code if any
           @on_shutdown.call if @on_shutdown
         rescue StandardError => e
+          puts "WTF: #{e.message}"
           logger.error "Error during shutdown: #{e.message}"
           shutdown_ok = false
         end

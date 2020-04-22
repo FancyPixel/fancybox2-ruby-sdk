@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Fancybox2::Logger::JSONFormatter do
   let(:file_logger) { Logger.new File.open($spec_log_file_path, 'w+') }
   let(:formatter) { Fancybox2::Logger::JSONFormatter.new }

@@ -1,4 +1,3 @@
-require 'spec_helper'
 require 'paho-mqtt'
 
 describe Fancybox2::Logger::MQTTLogDevice do

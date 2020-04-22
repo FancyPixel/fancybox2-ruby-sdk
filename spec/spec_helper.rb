@@ -6,6 +6,7 @@ Dir[File.expand_path('../support/**/*.rb', __FILE__)].each { |f| require f }
 RSpec.configure do |config|
   $spec_log_file_path = "#{__dir__}/spec_log.txt"
 
+  config.example_status_persistence_file_path = 'examples.txt'
   # Ensure no previous (zombie) mosquitto instance is still alive.
   # This can happen, for instance, when the test suite crashes due to a syntax error, and so Mosquitto.stop is not called
   Mosquitto.kill_zombies

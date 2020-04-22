@@ -1,4 +1,3 @@
-require 'spec_helper'
 require 'logger'
 
 describe Fancybox2::Logger::Multi do

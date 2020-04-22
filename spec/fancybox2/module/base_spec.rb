@@ -1,5 +1,3 @@
-require 'spec_helper'
-
 describe Fancybox2::Module::Base do
   let(:module_base_klass) { Fancybox2::Module::Base }
   let(:mqtt_client) { PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS }
@@ -110,181 +108,183 @@ describe Fancybox2::Module::Base do
         expect(module_base.default_actions.keys).to include :start, :stop, :restart, :shutdown, :logger
       end
     end
+  end
 
-    describe '#message_to' do
-      let(:destination) { :core }
-      let(:action) { :test }
-      let(:payload) { '' }
-      let(:hash_payload) { { some: 'value' } }
-      let(:array_payload) { ['some', 'values'] }
-      let(:retain) { false }
-      let(:qos) { 2 }
-      let(:topic) { module_base.topic_for(dest: destination, action: action) }
+  describe '#message_to' do
+    let(:destination) { :core }
+    let(:action) { :test }
+    let(:payload) { '' }
+    let(:hash_payload) { { some: 'value' } }
+    let(:array_payload) { ['some', 'values'] }
+    let(:retain) { false }
+    let(:qos) { 2 }
+    let(:topic) { module_base.topic_for(dest: destination, action: action) }
 
-      before { module_base.mqtt_client.connect }
+    before { module_base.mqtt_client.connect }
 
-      it 'is expected to call mqtt_client#publish' do
-        expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
-        module_base.message_to :core, :test, payload, retain, qos
-      end
-
-      it 'is expected to serialize as JSON an Hash payload' do
-        expect(module_base.mqtt_client).to receive(:publish).with topic, hash_payload.to_json, retain, qos
-        module_base.message_to :core, :test, hash_payload
-      end
-
-      it 'is expected to serialize as JSON an Array payload' do
-        expect(module_base.mqtt_client).to receive(:publish).with topic, array_payload.to_json, retain, qos
-        module_base.message_to :core, :test, array_payload
-      end
+    it 'is expected to call mqtt_client#publish' do
+      expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
+      module_base.message_to :core, :test, payload, retain, qos
     end
 
-    describe '#name' do
-      it 'is expected to return module name present on config/Fbxfile' do
-        expect(module_base.name).to eq example_fbxfile[:name]
-      end
+    it 'is expected to serialize as JSON an Hash payload' do
+      expect(module_base.mqtt_client).to receive(:publish).with topic, hash_payload.to_json, retain, qos
+      module_base.message_to :core, :test, hash_payload
     end
 
-    describe '#on_action' do
-      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+    it 'is expected to serialize as JSON an Array payload' do
+      expect(module_base.mqtt_client).to receive(:publish).with topic, array_payload.to_json, retain, qos
+      module_base.message_to :core, :test, array_payload
+    end
+  end
 
-      before { mqtt_client.connect }
+  describe '#name' do
+    it 'is expected to return module name present on config/Fbxfile' do
+      expect(module_base.name).to eq example_fbxfile[:name]
+    end
+  end
 
-      it 'is expected to add a topic callback on mqtt_client' do
-        expect { base_module.on_action :some_action, proc {} }
-            .to change(base_module.mqtt_client.registered_callback, :size).by 1
-      end
+  describe '#on_action' do
+    let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+
+    before { mqtt_client.connect }
+
+    it 'is expected to add a topic callback on mqtt_client' do
+      expect { base_module.on_action(:some_action, proc {}) }
+          .to change(base_module.mqtt_client.registered_callback, :size).by 1
+    end
+  end
+
+  describe '#on_logger' do
+    let(:code_proc) { proc { puts 'hello' } }
+    let(:packet) { double('Some packet', payload: { 'level' => 'debug' }) }
+
+    it 'is expected to accept a block and set its value on @on_logger' do
+      module_base.on_logger(&code_proc)
+      expect(module_base.instance_variable_get :@on_logger).to eq code_proc
     end
 
-    describe '#on_logger' do
-      let(:code_proc) { proc { puts 'hello' } }
-      let(:packet) { double('Some packet', payload: { 'level' => 'debug' }) }
-
-      it 'is expected to accept a block and set its value on @on_logger' do
-        module_base.on_logger &code_proc
-        expect(module_base.instance_variable_get :@on_logger).to eq code_proc
-      end
-
-      it 'is expected to call provided block with packet as argument' do
-        module_base.on_logger &code_proc
-        expect(code_proc).to receive(:call).with packet
-        module_base.on_logger packet
-      end
-
-      it 'is expected to set the log level if present into the packet' do
-        expect{ module_base.on_logger packet }.to change(module_base.logger, :level).from(Logger::INFO).to Logger::DEBUG
-      end
+    it 'is expected to call provided block with packet as argument' do
+      module_base.on_logger(&code_proc)
+      expect(code_proc).to receive(:call).with packet
+      module_base.on_logger packet
     end
 
-    describe '#remove_action' do
-      let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
-      let(:action) { 'some_action' }
+    it 'is expected to set the log level if present into the packet' do
+      expect{ module_base.on_logger packet }.to change(module_base.logger, :level).from(Logger::INFO).to Logger::DEBUG
+    end
+  end
 
-      before do
-        mqtt_client.connect
-        base_module.on_action action { }
-      end
+  describe '#remove_action' do
+    let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
+    let(:action) { 'some_action' }
 
-      it 'is expectedt to remove a topic callback on mqtt_client' do
-        expect { base_module.remove_action action }
-            .to change(base_module.mqtt_client.registered_callback, :size).by(-1)
-      end
+    before do
+      mqtt_client.connect
+      base_module.on_action(action {})
     end
 
-    describe '#on_restart' do
-      let(:packet) { 'fake packet' }
+    it 'is expectedt to remove a topic callback on mqtt_client' do
+      expect { base_module.remove_action action }
+          .to change(base_module.mqtt_client.registered_callback, :size).by(-1)
+    end
+  end
 
-      it 'is expected to call #stop' do
-        allow(module_base).to receive(:on_start).and_return(nil)
-        expect(module_base).to receive(:on_stop)
-        module_base.on_restart(packet)
-      end
+  describe '#on_restart' do
+    let(:packet) { 'fake packet' }
 
-      it 'is expected to call #start' do
-        expect(module_base).to receive(:on_start).with(packet)
-        module_base.on_restart(packet)
-      end
+    it 'is expected to call #stop' do
+      allow(module_base).to receive(:on_start).and_return(nil)
+      expect(module_base).to receive(:on_stop)
+      module_base.on_restart(packet)
     end
 
-    describe '#start_sending_alive' do
-      let(:interval) { 1000 }
+    it 'is expected to call #start' do
+      expect(module_base).to receive(:on_start).with(packet)
+      module_base.on_restart(packet)
+    end
+  end
 
-      it 'is expected to change @alive_task value' do
-        before_value = module_base.instance_variable_get :@alive_task
-        module_base.start_sending_alive(interval: interval)
-        expect(module_base.instance_variable_get :@alive_task).to_not eq before_value
-      end
+  describe '#start_sending_alive' do
+    let(:interval) { 1000 }
 
-      it 'is expected to populate @alive_task variable with an instance of Concurrent::TimerTask' do
-        expect(module_base.start_sending_alive(interval: interval)).to be_a Concurrent::TimerTask
-      end
-
-      it 'is expected to call #shutdown on @alive_task if the task already existed' do
-        module_base.start_sending_alive interval: interval
-        expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
-        module_base.start_sending_alive interval: interval
-      end
+    it 'is expected to change @alive_task value' do
+      before_value = module_base.instance_variable_get :@alive_task
+      module_base.start_sending_alive(interval: interval)
+      expect(module_base.instance_variable_get :@alive_task).to_not eq before_value
     end
 
-    describe '#setup' do
-      context 'when #setup has never been called' do
-        it 'is expected to call mqtt_client#connect' do
-          expect(mqtt_client).to receive :connect
-          module_base.setup
-        end
-      end
-
-      context 'when #setup has already been called' do
-        before { module_base.setup }
-
-        it "is expected to don't call mqtt_client#connect" do
-          expect(mqtt_client).to_not receive :connect
-          module_base.setup
-        end
-      end
+    it 'is expected to populate @alive_task variable with an instance of Concurrent::TimerTask' do
+      expect(module_base.start_sending_alive(interval: interval)).to be_a Concurrent::TimerTask
     end
 
-    describe '#on_shutdown' do
-      before do
+    it 'is expected to call #shutdown on @alive_task if the task already existed' do
+      module_base.start_sending_alive interval: interval
+      expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
+      module_base.start_sending_alive interval: interval
+    end
+  end
+
+  describe '#setup' do
+    context 'when #setup has never been called' do
+      it 'is expected to call mqtt_client#connect' do
+        expect(mqtt_client).to receive :connect
         module_base.setup
-        module_base.start_sending_alive interval: 1000
       end
-
-      it 'is expected to call @alive_task@shutdown' do
-        expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
-        module_base.on_shutdown
-      end
-
-      it 'is expected to signal core shutdown' do
-        expect(module_base).to receive(:message_to).with :core, :shutdown
-      end
-
-      it 'is expected to call mqtt_client#disconnect' do
-        expect(mqtt_client).to receive :disconnect
-        module_base.on_shutdown
-      end
-
-      # it 'is expected to exit with a 0 status code' do
-      #   expect(Kernel).to receive(:exit).with 0
-      #   module_base.shutdown
-      # end
     end
 
-    describe '#fbxfile_path' do
-      context 'when the @fbxfile_path variable is set on the instance' do
-        let(:file_path) { '/some/path' }
+    context 'when #setup has already been called' do
+      before { module_base.setup }
 
-        before { module_base.instance_variable_set(:@fbxfile_path, file_path) }
-
-        it 'is expected to return the set variable content' do
-          expect(module_base.fbxfile_path).to eq file_path
-        end
+      it "is expected to don't call mqtt_client#connect" do
+        expect(mqtt_client).to_not receive :connect
+        module_base.setup
       end
+    end
+  end
 
-      context 'when the @fbxfile_path variable value is not yet populated' do
-        it 'is expected to return Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH' do
-          expect(module_base.fbxfile_path).to eq Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH
-        end
+  describe '#on_shutdown' do
+    before do
+      module_base.setup
+      module_base.start_sending_alive interval: 1000
+      allow(module_base).to receive(:exit).with(any_args).and_return false
+    end
+
+    it 'is expected to call @alive_task#shutdown' do
+      expect(module_base.instance_variable_get :@alive_task).to receive :shutdown
+      module_base.on_shutdown
+    end
+
+    it 'is expected to signal core shutdown' do
+      expect(module_base).to receive(:message_to).with :core, :shutdown, any_args
+      module_base.on_shutdown
+    end
+
+    it 'is expected to call mqtt_client#disconnect' do
+      expect(mqtt_client).to receive :disconnect
+      module_base.on_shutdown
+    end
+
+    it 'is expected to exit with a 0 status code' do
+      expect(module_base).to receive(:exit).with 0
+      module_base.on_shutdown
+    end
+  end
+
+  describe '#fbxfile_path' do
+    context 'when the @fbxfile_path variable is set on the instance' do
+      let(:file_path) { '/some/path' }
+
+      before { module_base.instance_variable_set(:@fbxfile_path, file_path) }
+
+      it 'is expected to return the set variable content' do
+        expect(module_base.fbxfile_path).to eq file_path
+      end
+    end
+
+    context 'when the @fbxfile_path variable value is not yet populated' do
+      it 'is expected to return Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH' do
+        expect(module_base.fbxfile_path).to eq Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH
       end
     end
   end
