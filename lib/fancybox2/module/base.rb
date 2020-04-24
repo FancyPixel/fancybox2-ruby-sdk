@@ -233,7 +233,6 @@ module Fancybox2
 
         # Subscribe to all messages directed to me
         logger.debug 'Making broker subscriptions'
-        puts "topic: #{topic_for(action: '#')}"
         mqtt_client.subscribe [topic_for(action: '#'), 2]
       end
 
