@@ -34,7 +34,7 @@ module Fancybox2
         }
       end
 
-      def message_to(dest, action = '', payload = nil, retain = false, qos = 2)
+      def message_to(dest, action = '', payload = '', retain = false, qos = 2)
         topic = topic_for dest: dest, action: action
         payload = case payload
                   when Hash, Array
