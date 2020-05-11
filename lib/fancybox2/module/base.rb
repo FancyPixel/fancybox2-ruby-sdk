@@ -23,16 +23,6 @@ module Fancybox2
         @status = :stopped
         @alive_task = nil
       end
-      
-      def default_actions
-        {
-            start:    proc { |packet| on_start packet },
-            stop:     proc { on_stop },
-            restart:  proc { |packet| on_restart packet },
-            shutdown: proc { on_shutdown },
-            logger:   proc { |packet| on_logger packet }
-        }
-      end
 
       def message_to(dest, action = '', payload = '', retain = false, qos = 2)
         topic = topic_for dest: dest, action: action
@@ -140,11 +130,12 @@ module Fancybox2
         # Call user code
         @on_start.call(packet) if @on_start
 
-        configs = packet.payload
+        configs = packet.payload || {}
+        interval = configs['aliveTimeout'] || 1000
         # Start code execution from scratch
         logger.debug "Received 'start'"
         @status = :started
-        start_sending_alive interval: configs['aliveTimeout']
+        start_sending_alive interval: interval
       end
 
       def on_start=(callback)
@@ -165,12 +156,25 @@ module Fancybox2
         @on_stop = callback if callback.is_a?(Proc)
       end
 
+      def platform
+        RUBY_
+      end
+
       def remove_action(action)
         topic = topic_for action: action
         mqtt_client.remove_topic_callback topic
       end
 
+      def shutdown
+        on_shutdown
+      end
+
+      def start
+        on_start
+      end
+
       def start_sending_alive(interval: 5000)
+        # TODO: replace the alive interval task with Eventmachine?
         # Interval is expected to be msec, so convert it to secs
         interval /= 1000
         @alive_task.shutdown if @alive_task
@@ -289,6 +293,16 @@ module Fancybox2
                                     level: @log_level,
                                     progname: @log_progname
         logger
+      end
+
+      def default_actions
+        {
+            start:    proc { |packet| on_start packet },
+            stop:     proc { on_stop },
+            restart:  proc { |packet| on_restart packet },
+            shutdown: proc { on_shutdown },
+            logger:   proc { |packet| on_logger packet }
+        }
       end
 
       def load_fbx_file
