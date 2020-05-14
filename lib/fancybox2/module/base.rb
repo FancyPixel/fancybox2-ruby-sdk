@@ -83,13 +83,17 @@ module Fancybox2
         @on_restart = callback if callback.is_a?(Proc)
       end
 
-      def on_shutdown(&block)
+      def on_shutdown(do_exit = true, &block)
         if block_given?
           @on_shutdown = block
           return
         end
-        logger.debug "Received 'shutdown' command"
+
         shutdown_ok = true
+        logger.debug "Received 'shutdown' command"
+        # Stop sending alive messages
+        @alive_task.shutdown if @alive_task
+
         begin
           # Call user code if any
           @on_shutdown.call if @on_shutdown
@@ -98,24 +102,23 @@ module Fancybox2
           shutdown_ok = false
         end
 
-        # Stop sending alive messages
-        @alive_task.shutdown
-
         # Signal core that we've executed shutdown operations.
         # This message is not mandatory, so keep it simple
         shutdown_message = shutdown_ok ? 'ok' : 'nok'
         logger.debug "Sending shutdown message to core with status '#{shutdown_message}'"
         message_to :core, :shutdown, { status: shutdown_message }
-        sleep 0.1 # Wait some time in order to be sure that the message has been published (message is not mandatory)
+        sleep 0.05 # Wait some time in order to be sure that the message has been published (message is not mandatory)
 
         # Gracefully disconnect from broker and exit
         logger.debug 'Disconnecting from broker'
         mqtt_client.disconnect
 
-        # Exit from process
-        status_code = shutdown_ok ? 0 : 1
-        logger.debug "Exiting with status code #{status_code}"
-        exit status_code
+        if do_exit
+          # Exit from process
+          status_code = shutdown_ok ? 0 : 1
+          logger.debug "Exiting with status code #{status_code}"
+          exit status_code
+        end
       end
 
       def on_shutdown=(callback)
@@ -165,8 +168,8 @@ module Fancybox2
         mqtt_client.remove_topic_callback topic
       end
 
-      def shutdown
-        on_shutdown
+      def shutdown(do_exit = true)
+        on_shutdown do_exit
       end
 
       def start
