@@ -7,7 +7,7 @@ describe Fancybox2::Module::Base do
   let(:log_progname) { 'Fancy Program' }
   let(:logger) { Logger.new STDOUT }
   let(:path_of_fbxfile_example) { Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH }
-  let(:example_fbxfile) { JSON.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
+  let(:example_fbxfile) { YAML.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
 
   context 'attr_accessors' do
     it { should have_attr_reader :logger }
@@ -106,7 +106,7 @@ describe Fancybox2::Module::Base do
 
   describe '#default_actions' do
     it 'is expected to return an Hash of default actions' do
-      expect(module_base.default_actions.keys).to include :start, :stop, :restart, :shutdown, :logger
+      expect(module_base.send(:default_actions).keys).to include :start, :stop, :restart, :shutdown, :logger
     end
   end
 
@@ -139,7 +139,7 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#name' do
-    it 'is expected to return module name present on Fbxfile' do
+    it 'is expected to return module name present on Fbxfile.example' do
       expect(module_base.name).to eq example_fbxfile[:name]
     end
   end
@@ -447,7 +447,7 @@ describe Fancybox2::Module::Base do
     before { module_base.mqtt_client.connect }
 
     it 'is expected to call #on_action for each action configured in #default_actions' do
-      expect(module_base).to receive(:on_action).exactly(module_base.default_actions.keys.size).times
+      expect(module_base).to receive(:on_action).exactly(module_base.send(:default_actions).keys.size).times
       module_base.on_client_connack
     end
 

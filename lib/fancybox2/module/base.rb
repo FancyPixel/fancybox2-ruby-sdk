@@ -1,4 +1,5 @@
 require 'json'
+require 'yaml'
 require 'logger'
 require 'paho-mqtt'
 require 'concurrent-ruby'
@@ -310,7 +311,7 @@ module Fancybox2
 
       def load_fbx_file
         if File.exists? @fbxfile_path
-          @fbxfile = JSON.parse(File.read(@fbxfile_path)).deep_symbolize_keys
+          @fbxfile = YAML.load(File.read(@fbxfile_path)).deep_symbolize_keys
         else
           raise Exceptions::FbxfileNotFound.new @fbxfile_path
         end

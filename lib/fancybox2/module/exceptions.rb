@@ -4,7 +4,7 @@ module Fancybox2
 
       class FbxfileNotFound < StandardError
         def initialize(file_path, message = nil)
-          message = message || "Fbxfile not found at #{file_path}"
+          message = message || "Fbxfile.example not found at #{file_path}"
           super(message)
         end
       end
