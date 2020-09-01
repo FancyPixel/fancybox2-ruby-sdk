@@ -42,7 +42,7 @@ module Fancybox2
       end
 
       def on_action(action, callback = nil, &block)
-        topic = topic_for action: action
+        topic = topic_for source: :core, action: action
         mqtt_client.add_topic_callback topic do |packet|
           payload = packet.payload
           # Try to parse payload as JSON. Rescue with original payload in case of error
@@ -165,7 +165,7 @@ module Fancybox2
       end
 
       def remove_action(action)
-        topic = topic_for action: action
+        topic = topic_for source: :core, action: action
         mqtt_client.remove_topic_callback topic
       end
 
@@ -205,8 +205,8 @@ module Fancybox2
         end
       end
 
-      def topic_for(dest: nil, action: nil, packet_type: :msg)
-        source = self.name
+      def topic_for(source: self.name, dest: self.name, action: nil, packet_type: :msg)
+        source = source.to_s
         packet_type = packet_type.to_s
         dest = dest.to_s
         action = action.to_s
@@ -233,7 +233,7 @@ module Fancybox2
 
         # Subscribe to all messages directed to me
         logger.debug 'Making broker subscriptions'
-        mqtt_client.subscribe [topic_for(action: '#'), 2]
+        mqtt_client.subscribe [topic_for(source: '+', action: '+'), 2]
       end
 
       # @note Call super if you override this method

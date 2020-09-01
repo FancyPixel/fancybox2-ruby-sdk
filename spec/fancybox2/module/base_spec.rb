@@ -373,7 +373,7 @@ describe Fancybox2::Module::Base do
       base_module.on_action(action {})
     end
 
-    it 'is expectedt to remove a topic callback on mqtt_client' do
+    it 'is expected to remove a topic callback on mqtt_client' do
       expect { base_module.remove_action action }
           .to change(base_module.mqtt_client.registered_callback, :size).by(-1)
     end
@@ -440,7 +440,7 @@ describe Fancybox2::Module::Base do
     end
 
     it 'is expected to call #mqtt_client#subscribe with appropriate params' do
-      expect(module_base.mqtt_client).to receive(:subscribe).with([module_base.topic_for(action: '#'), 2])
+      expect(module_base.mqtt_client).to receive(:subscribe).with([module_base.topic_for(source: '+', action: '+'), 2])
       module_base.on_client_connack
     end
   end
