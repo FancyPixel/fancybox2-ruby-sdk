@@ -205,21 +205,13 @@ module Fancybox2
         end
       end
 
-      def topic_for(dest: nil, action: nil, dest_type: :modules)
-        module_name = dest = dest.to_s
+      def topic_for(dest: nil, action: nil, packet_type: :msg)
+        source = self.name
+        packet_type = packet_type.to_s
+        dest = dest.to_s
         action = action.to_s
-        dest_type = dest_type.to_s
-        core_string = ''
-        # Tell if the topic is "for the Core" or "for some other module"
-        case dest
-        when 'core'
-          core_string = 'core/'
-          module_name = self.name
-        when ''
-          module_name = self.name
-        end
 
-        Config::DEFAULT_TOPIC_FORMAT % [core_string, dest_type, module_name, action]
+        Config::DEFAULT_TOPIC_FORMAT % [source, packet_type, dest, action]
       end
 
       ## MQTT Client callbacks

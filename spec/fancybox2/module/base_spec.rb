@@ -420,26 +420,14 @@ describe Fancybox2::Module::Base do
   describe '#topic_for' do
     let(:dest) { :some_dest }
     let(:action) { :some_action }
-    let(:dest_type) { :some_destination_type }
-
-    context "when the destination is 'core'" do
-      let(:core_dest) { :core }
-
-      it "is expected to return a topic name that starts with 'core/'" do
-        expect(module_base.topic_for dest: core_dest).to start_with 'core/'
-      end
-    end
+    let(:packet_type) { :some_destination_type }
 
     it 'is expected to return a topic that includes both the destination and the action provided' do
       expect(module_base.topic_for dest: dest, action: action).to include(dest.to_s, action.to_s)
     end
 
-    it "is expected to return a topic that includes 'dest_type' if provided" do
-      expect(module_base.topic_for dest: dest, action: action, dest_type: dest_type).to include(dest_type.to_s)
-    end
-
-    it "is expected to default 'dest_type' to 'modules'" do
-      expect(module_base.topic_for dest: dest, action: action).to include('modules/')
+    it "is expected to return a topic that includes 'packet_type' if provided" do
+      expect(module_base.topic_for dest: dest, action: action, packet_type: packet_type).to include(packet_type.to_s)
     end
   end
 
