@@ -187,6 +187,8 @@ describe Fancybox2::Module::Base do
   describe '#on_restart' do
     let(:packet) { double('Some packet', payload: { 'aliveTimeout' => 1000 }) }
 
+    before { mqtt_client.connect }
+
     context 'when a block is provided' do
       let(:block) { proc { puts 'hello' } }
 
@@ -289,6 +291,8 @@ describe Fancybox2::Module::Base do
     let(:interval) { 1000 }
     let(:packet) { double('Some packet', payload: { 'aliveTimeout' => interval }) }
 
+    before { mqtt_client.connect }
+
     context 'when a block is provided' do
       let(:block) { proc { puts 'hello' } }
 
@@ -381,6 +385,8 @@ describe Fancybox2::Module::Base do
 
   describe '#start_sending_alive' do
     let(:interval) { 1000 }
+
+    before { mqtt_client.connect }
 
     it 'is expected to change @alive_task value' do
       before_value = module_base.instance_variable_get :@alive_task

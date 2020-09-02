@@ -33,8 +33,12 @@ module Fancybox2
                   else
                     payload
                   end
-        logger.debug "#{self.class}#message_to '#{topic}' payload: #{payload}"
-        mqtt_client.publish topic, payload, retain, qos
+        if mqtt_client.connected?
+          logger.debug "#{self.class}#message_to '#{topic}' payload: #{payload}"
+          mqtt_client.publish topic, payload, retain, qos
+        else
+          logger.error 'MQTT client not connected to broker'
+        end
       end
 
       def name
@@ -231,9 +235,11 @@ module Fancybox2
           end
         end
 
-        # Subscribe to all messages directed to me
-        logger.debug 'Making broker subscriptions'
-        mqtt_client.subscribe [topic_for(source: '+', action: '+'), 2]
+        if mqtt_client.subscribed_topics.size.zero?
+          # Subscribe to all messages directed to me
+          logger.debug 'Making broker subscriptions'
+          mqtt_client.subscribe [topic_for(source: '+', action: '+'), 2]
+        end
       end
 
       # @note Call super if you override this method
