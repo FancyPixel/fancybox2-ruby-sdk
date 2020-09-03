@@ -13,4 +13,5 @@ group :test do
   gem 'guard', '~> 2.16.2'
   gem 'guard-rspec', '~> 4.7.3'
   gem 'guard-bundler', '~> 2.2.1'
+  gem 'simplecov', require: false
 end

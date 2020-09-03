@@ -13,6 +13,7 @@ class Mosquitto
     end
   end
 
+  # :nocov:
   def self.kill_zombies(pid_file_path = DEFAULT_PID_FILE_PATH)
     if File.exists? pid_file_path
       pid = File.read(pid_file_path).to_i
@@ -21,6 +22,7 @@ class Mosquitto
       end
     end
   end
+  # :nocov:
 
   def self.pid
     @pid
@@ -42,9 +44,11 @@ class Mosquitto
     self.delete_pid_file
   end
 
+  # :nocov:
   def self.kill(pid = self.pid)
     Process.kill('KILL', pid) rescue nil
   end
+  # :nocov:
 
   def self.write_pid_file(pid = self.pid, pid_file_path = DEFAULT_PID_FILE_PATH)
     file = File.open(pid_file_path, 'w+')

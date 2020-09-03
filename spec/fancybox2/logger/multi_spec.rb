@@ -30,6 +30,15 @@ describe Fancybox2::Logger::Multi do
       end
     end
 
+    it 'is expected to define Ruby Logger severities methods [debug?, info?, warn?, error?, fatal?, unknown?]' do
+      multi = Fancybox2::Logger::Multi.new stdout_logger
+      Logger::Severity.constants.each do |severity|
+        method = "#{severity.downcase}?".to_sym
+        expect(multi).to respond_to method
+        multi.send method  # Useful in order to trigger code coverage
+      end
+    end
+
     it 'is expected to set log level on every provided logger' do
       level = Logger::WARN
       Fancybox2::Logger::Multi.new stdout_logger, file_logger, level: level
@@ -147,6 +156,12 @@ describe Fancybox2::Logger::Multi do
       multi.loggers = new_loggers
       expect(multi.loggers).to match_array new_loggers
     end
+
+    context 'when bad params are provided' do
+      it 'is expected to raise a ArgumentError' do
+        expect { multi.loggers = ['not_a_logger'] }.to raise_error ArgumentError
+      end
+    end
   end
 
   describe '#progname=(name)' do
@@ -157,6 +172,27 @@ describe Fancybox2::Logger::Multi do
       multi.progname = progname
       expect(stdout_logger.progname).to eq progname
       expect(file_logger.progname).to eq progname
+    end
+  end
+
+  context 'private methods' do
+
+    describe '#normalize_log_level' do
+      let(:instance) { described_class.new stdout_logger }
+
+      it 'is expected to return a normalized representation of given log level' do
+        %i[unknown debug info warn error fatal].each do |level|
+          expect(instance.send(:normalize_log_level, level)).to eq Logger.const_get(level.upcase)
+        end
+
+        [Logger::UNKNOWN, Logger::DEBUG, Logger::INFO, Logger::WARN, Logger::FATAL].each do |level|
+          expect(instance.send(:normalize_log_level, level)).to eq level
+        end
+
+        %w[unknown debug info warn error fatal].each do |level|
+          expect(instance.send(:normalize_log_level, level)).to eq Logger.const_get(level.upcase)
+        end
+      end
     end
   end
 end

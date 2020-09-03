@@ -15,13 +15,6 @@ module Fancybox2
           super(message)
         end
       end
-
-      class NotAValidSubscription < StandardError
-        def initialize(topic, message = nil)
-          message = message || "The subscription topic #{topic} is not valid"
-          super(message)
-        end
-      end
     end
   end
 end

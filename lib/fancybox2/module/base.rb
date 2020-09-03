@@ -17,7 +17,7 @@ module Fancybox2
         @fbxfile_path = options.fetch :fbxfile_path, Config::FBXFILE_DEFAULT_FILE_PATH
         @fbxfile = check_and_return_fbxfile options.fetch(:fbxfile, load_fbx_file)
         @mqtt_client_params = options[:mqtt_client_params] || {}
-        @mqtt_client = options[:mqtt_client] || build_mqtt_client
+        check_or_build_mqtt_client options[:mqtt_client]
         @log_level = options.fetch :log_level, ::Logger::INFO
         @log_progname = options.fetch :log_progname, 'Fancybox2::Module::Base'
         @logger = options.fetch :logger, create_default_logger
@@ -26,14 +26,14 @@ module Fancybox2
       end
 
       def message_to(dest, action = '', payload = '', retain = false, qos = 2)
-        topic = topic_for dest: dest, action: action
-        payload = case payload
-                  when Hash, Array
-                    payload.to_json
-                  else
-                    payload
-                  end
         if mqtt_client.connected?
+          topic = topic_for dest: dest, action: action
+          payload = case payload
+                    when Hash, Array
+                      payload.to_json
+                    else
+                      payload
+                    end
           logger.debug "#{self.class}#message_to '#{topic}' payload: #{payload}"
           mqtt_client.publish topic, payload, retain, qos
         else
@@ -48,6 +48,7 @@ module Fancybox2
       def on_action(action, callback = nil, &block)
         topic = topic_for source: :core, action: action
         mqtt_client.add_topic_callback topic do |packet|
+          # :nocov:
           payload = packet.payload
           # Try to parse payload as JSON. Rescue with original payload in case of error
           packet.payload = JSON.parse(payload) rescue payload
@@ -56,6 +57,7 @@ module Fancybox2
           elsif callback && callback.is_a?(Proc)
             callback.call packet
           end
+          # :nocov:
         end
       end
 
@@ -138,7 +140,7 @@ module Fancybox2
         # Call user code
         @on_start.call(packet) if @on_start
 
-        configs = packet.payload || {}
+        configs = packet ? packet.payload : {}
         interval = configs['aliveTimeout'] || 1000
         # Start code execution from scratch
         logger.debug "Received 'start'"
@@ -162,10 +164,6 @@ module Fancybox2
 
       def on_stop=(callback)
         @on_stop = callback if callback.is_a?(Proc)
-      end
-
-      def platform
-        RUBY_
       end
 
       def remove_action(action)
@@ -195,14 +193,16 @@ module Fancybox2
         @alive_task.execute
       end
 
-      def setup
+      def setup(retry_connection = true)
         unless @setted_up
           begin
             logger.debug 'Connecting to the broker...'
             mqtt_client.connect
           rescue PahoMqtt::Exception => e
+            # :nocov:
             logger.error "Error while connecting to the broker: #{e.message}"
-            retry
+            retry if retry_connection
+            # :nocov:
           end
 
           @setted_up = true
@@ -227,11 +227,13 @@ module Fancybox2
           action_name = action_name.to_s
 
           on_action action_name do |packet|
+            # :nocov:
             if callback.is_a? Proc
               callback.call packet
             else
               logger.warn "No valid callback defined for '#{action_name}'"
             end
+            # :nocov:
           end
         end
 
@@ -276,9 +278,17 @@ module Fancybox2
 
       private
 
-      def build_mqtt_client
-        @internal_mqtt_client = true
-        PahoMqtt::Client.new mqtt_params
+      def check_or_build_mqtt_client(mqtt_client = nil)
+        if mqtt_client
+          unless mqtt_client.is_a? PahoMqtt::Client
+            raise Exceptions::NotValidMQTTClient.new
+          end
+          @internal_mqtt_client = false
+          @mqtt_client = mqtt_client
+        else
+          @internal_mqtt_client = true
+          @mqtt_client = PahoMqtt::Client.new mqtt_params
+        end
       end
 
       def check_and_return_fbxfile(hash_attributes)
@@ -297,6 +307,7 @@ module Fancybox2
         logger
       end
 
+      # :nocov:
       def default_actions
         {
             start:    proc { |packet| on_start packet },
@@ -306,6 +317,7 @@ module Fancybox2
             logger:   proc { |packet| on_logger packet }
         }
       end
+      # :nocov:
 
       def load_fbx_file
         if File.exists? @fbxfile_path
@@ -315,6 +327,7 @@ module Fancybox2
         end
       end
 
+      # :nocov:
       def mqtt_default_params
         {
             host:             'localhost',
@@ -345,6 +358,7 @@ module Fancybox2
             on_message:       proc { |msg| on_client_message msg }
         }
       end
+      # :nocov:
 
       def mqtt_params
         return @mqtt_params if @mqtt_params

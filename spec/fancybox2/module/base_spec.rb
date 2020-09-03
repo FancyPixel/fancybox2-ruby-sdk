@@ -120,21 +120,30 @@ describe Fancybox2::Module::Base do
     let(:qos) { 2 }
     let(:topic) { module_base.topic_for(dest: destination, action: action) }
 
-    before { module_base.mqtt_client.connect }
+    context 'when the mqtt_client is connected to the broker' do
+      before { module_base.mqtt_client.connect }
 
-    it 'is expected to call mqtt_client#publish' do
-      expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
-      module_base.message_to :core, :test, payload, retain, qos
+      it 'is expected to call mqtt_client#publish' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, payload, retain, qos
+        module_base.message_to :core, :test, payload, retain, qos
+      end
+
+      it 'is expected to serialize as JSON an Hash payload' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, hash_payload.to_json, retain, qos
+        module_base.message_to :core, :test, hash_payload
+      end
+
+      it 'is expected to serialize as JSON an Array payload' do
+        expect(module_base.mqtt_client).to receive(:publish).with topic, array_payload.to_json, retain, qos
+        module_base.message_to :core, :test, array_payload
+      end
     end
 
-    it 'is expected to serialize as JSON an Hash payload' do
-      expect(module_base.mqtt_client).to receive(:publish).with topic, hash_payload.to_json, retain, qos
-      module_base.message_to :core, :test, hash_payload
-    end
-
-    it 'is expected to serialize as JSON an Array payload' do
-      expect(module_base.mqtt_client).to receive(:publish).with topic, array_payload.to_json, retain, qos
-      module_base.message_to :core, :test, array_payload
+    context 'when the mqtt_client is NOT connected to the broker' do
+      it 'is expected to log an error' do
+        expect(module_base.logger).to receive(:error)
+        module_base.message_to :core, :test, payload
+      end
     end
   end
 
@@ -383,6 +392,31 @@ describe Fancybox2::Module::Base do
     end
   end
 
+  describe '#shutodown' do
+    context 'when no argument is provided' do
+      it "is expected to call #on_shutdown with an argument that has 'true' value" do
+        expect(module_base).to receive(:on_shutdown).with true
+        module_base.shutdown
+      end
+    end
+
+    context "when 'do_exit' argument is provided" do
+      let(:do_exit) { false }
+
+      it "is expected to call #on_shutdown with an argument that has provided argument's value" do
+        expect(module_base).to receive(:on_shutdown).with do_exit
+        module_base.shutdown do_exit
+      end
+    end
+  end
+
+  describe '#start' do
+    it 'is expected to call #on_start' do
+      expect(module_base).to receive :on_start
+      module_base.start
+    end
+  end
+
   describe '#start_sending_alive' do
     let(:interval) { 1000 }
 
@@ -421,6 +455,30 @@ describe Fancybox2::Module::Base do
         module_base.setup
       end
     end
+
+  #   context 'when a connection error occurs' do
+  #     # Override mqtt_client with a special one that has no reconnection retries and so on...
+  #     let(:mqtt_client) do
+  #       PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS.merge(
+  #           reconnect_limit: 0,
+  #           reconnect_delay: 0,
+  #           keep_alive: 0,
+  #           ack_timeout: 0
+  #       )
+  #     end
+  #
+  #     before(:all) { Mosquitto.stop }
+  #     after(:all) do
+  #       # Restart Mosquitto
+  #       Mosquitto.start
+  #       sleep(10) # Give time to mosquitto to startup
+  #     end
+  #
+  #     # We expect to rescue the raised exception
+  #     it 'is expected to not raise an error' do
+  #       expect { module_base.setup(false) }.to_not raise_error
+  #     end
+  #   end
   end
 
   describe '#topic_for' do
@@ -460,14 +518,24 @@ describe Fancybox2::Module::Base do
 
   context 'private methods' do
 
-    describe '#build_mqtt_client' do
-      it 'is expected to return a PahoMqtt::Client instance' do
-        expect(module_base.send :build_mqtt_client).to be_a PahoMqtt::Client
+    describe '#check_or_build_mqtt_client' do
+      context 'when no mqtt_client param is provided' do
+        it 'is expected to return a PahoMqtt::Client instance' do
+          expect(module_base.send :check_or_build_mqtt_client).to be_a PahoMqtt::Client
+        end
+
+        it 'is expected to call #mqtt_params' do
+          expect(module_base).to receive(:mqtt_params)
+          module_base.send :check_or_build_mqtt_client
+        end
       end
 
-      it 'is expected to call #mqtt_params' do
-        expect(module_base).to receive(:mqtt_params)
-        module_base.send :build_mqtt_client
+      context 'when mqtt_client param is provided' do
+        context "and it's not a valid client" do
+          it 'is expected to raise a NotValidMQTTClient exception' do
+            expect { module_base.send(:check_or_build_mqtt_client, 'not_a_client') }.to raise_error Fancybox2::Module::Exceptions::NotValidMQTTClient
+          end
+        end
       end
     end
 
@@ -506,6 +574,24 @@ describe Fancybox2::Module::Base do
       it 'is expected the broker logdev to use the module_base mqtt_client' do
         loggers = module_base.send(:create_default_logger).loggers
         expect(loggers.last.instance_variable_get(:@logdev).dev.client).to eq module_base.mqtt_client
+      end
+    end
+
+    describe '#load_fbx_file' do
+      context 'when an Fbxfile exists at path' do
+        it 'it is expected to return the file content as an Hash' do
+          expect(module_base.send(:load_fbx_file)).to be_a Hash
+        end
+      end
+
+      context 'when no Fbxfile exists at path' do
+        let(:bad_path) { 'bad/path' }
+
+        before { module_base.instance_variable_set :@fbxfile_path, bad_path }
+
+        it 'is expected to raise a Exceptions::FbxfileNotFound' do
+          expect { module_base.send :load_fbx_file }.to raise_error Fancybox2::Module::Exceptions::FbxfileNotFound
+        end
       end
     end
   end
