@@ -362,11 +362,11 @@ describe Fancybox2::Module::Base do
       module_base.on_start packet
     end
 
-    it 'is expected to set @status = :started' do
+    it 'is expected to set @status = :running' do
       # Set a fake value on @status in order to check if it changes
       module_base.instance_variable_set :@status, 'some value'
       module_base.on_restart packet
-      expect(module_base.instance_variable_get :@status).to eq :started
+      expect(module_base.instance_variable_get :@status).to eq :running
     end
 
     it 'is expected to call #on_start with packet as argument' do

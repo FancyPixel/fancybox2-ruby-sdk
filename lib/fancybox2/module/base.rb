@@ -8,7 +8,7 @@ module Fancybox2
   module Module
     class Base
 
-      attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path
+      attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path, :status
       attr_accessor :configs
 
       def initialize(*args)
@@ -171,7 +171,7 @@ module Fancybox2
         interval = configs['aliveTimeout'] || 1000
         # Start code execution from scratch
         logger.debug "Received 'start'"
-        @status = :started
+        @status = :running
         start_sending_alive interval: interval
       end
 
@@ -218,6 +218,14 @@ module Fancybox2
           }
         end
         @alive_task.execute
+      end
+
+      def running?
+        @status.eql? :running
+      end
+
+      def stopped?
+        @status.eql? :stopped
       end
 
       def setup(retry_connection = true)
