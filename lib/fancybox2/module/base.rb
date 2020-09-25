@@ -9,6 +9,7 @@ module Fancybox2
     class Base
 
       attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path
+      attr_accessor :configs
 
       def initialize(*args)
         options = args.extract_options.deep_symbolize_keys!
@@ -61,14 +62,38 @@ module Fancybox2
         end
       end
 
+      def on_configs(packet = nil, &block)
+        if block_given?
+          @on_configs = block
+          return
+        end
+        @configs = begin
+                     # Try to parse
+                     JSON.parse packet.payload
+                   rescue JSON::ParserError
+                     begin
+                       # Try to parse YAML
+                       YAML.load packet.payload
+                     rescue StandardError
+                       # Fallback to original content
+                       packet.payload
+                     end
+                   end
+        @on_configs.call(packet) if @on_configs
+      end
+
+      def on_configs=(callback)
+        @on_configs = callback if callback.is_a?(Proc)
+      end
+
       def on_logger(packet = nil, &block)
         if block_given?
           @on_logger = block
           return
         end
         @on_logger.call(packet) if @on_logger
-        configs = packet.payload
-        logger.level = configs['level'] if configs['level']
+        logger_configs = packet.payload
+        logger.level = logger_configs['level'] if logger_configs['level']
       end
 
       def on_logger=(callback)
@@ -116,9 +141,11 @@ module Fancybox2
         message_to :core, :shutdown, { status: shutdown_message }
         sleep 0.05 # Wait some time in order to be sure that the message has been published (message is not mandatory)
 
-        # Gracefully disconnect from broker and exit
-        logger.debug 'Disconnecting from broker'
-        mqtt_client.disconnect
+        if mqtt_client && mqtt_client.connected?
+          # Gracefully disconnect from broker and exit
+          logger.debug 'Disconnecting from broker'
+          mqtt_client.disconnect
+        end
 
         if do_exit
           # Exit from process
@@ -159,7 +186,7 @@ module Fancybox2
         end
         @on_stop.call if @on_stop
         @status = :stopped
-        # Stop code excution, but keep broker connection and continue to send alive
+        # Stop code execution, but keep broker connection and continue to send alive
       end
 
       def on_stop=(callback)
@@ -314,7 +341,8 @@ module Fancybox2
             stop:     proc { on_stop },
             restart:  proc { |packet| on_restart packet },
             shutdown: proc { on_shutdown },
-            logger:   proc { |packet| on_logger packet }
+            logger:   proc { |packet| on_logger packet },
+            configs:  proc { |packet| on_configs packet }
         }
       end
       # :nocov:

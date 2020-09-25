@@ -22,6 +22,7 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
+    sleep(0.1) # Wait for late processes that are already connected to broker
     Mosquitto.stop
   end
 

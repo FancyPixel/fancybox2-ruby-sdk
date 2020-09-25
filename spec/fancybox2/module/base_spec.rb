@@ -9,12 +9,9 @@ describe Fancybox2::Module::Base do
   let(:path_of_fbxfile_example) { Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH }
   let(:example_fbxfile) { YAML.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
 
-  context 'attr_accessors' do
-    it { should have_attr_reader :logger }
-  end
+  it { should have_attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path, :configs }
 
   describe 'initialize' do
-
     context 'with default params' do
       it 'is expected to set a logger' do
         expect(module_base.logger).to_not be_nil
@@ -106,7 +103,7 @@ describe Fancybox2::Module::Base do
 
   describe '#default_actions' do
     it 'is expected to return an Hash of default actions' do
-      expect(module_base.send(:default_actions).keys).to include :start, :stop, :restart, :shutdown, :logger
+      expect(module_base.send(:default_actions).keys).to eq [:start, :stop, :restart, :shutdown, :logger, :configs]
     end
   end
 
@@ -161,6 +158,49 @@ describe Fancybox2::Module::Base do
     it 'is expected to add a topic callback on mqtt_client' do
       expect { base_module.on_action(:some_action, proc {}) }
           .to change(base_module.mqtt_client.registered_callback, :size).by 1
+    end
+  end
+
+  describe '#on_configs' do
+    let(:code_proc) { proc { puts 'hello' } }
+    let(:json_packet) { double('Some json packet', payload: '{"some": "property"}') }
+    let(:yaml_packet) { double('Some yaml packet', payload: "---\n:a: 20\n:b: 10\n") }
+    let(:complex_packet) { double('Some yaml packet', payload: "something:\n  not:\n yaml_or_json") }
+
+    it 'is expected to accept a block and set its value on @on_configs' do
+      module_base.on_configs(&code_proc)
+      expect(module_base.instance_variable_get :@on_configs).to eq code_proc
+    end
+
+    it 'is expected to call provided block with packet as argument' do
+      packet = [json_packet, yaml_packet, complex_packet].sample
+      module_base.on_configs(&code_proc)
+      expect(code_proc).to receive(:call).with packet
+      module_base.on_configs packet
+    end
+
+    it 'is expected to try to parse a JSON payload' do
+      module_base.on_configs json_packet
+      expect(module_base.instance_variable_get :@configs).to eq JSON.parse(json_packet.payload)
+    end
+
+    it 'is expected to try to parse a YAML payload' do
+      module_base.on_configs yaml_packet
+      expect(module_base.instance_variable_get :@configs).to eq YAML.load(yaml_packet.payload)
+    end
+
+    it 'is expected to fallback to original packet payload if any parsing attempt failed' do
+      module_base.on_configs complex_packet
+      expect(module_base.instance_variable_get :@configs).to eq complex_packet.payload
+    end
+  end
+
+  describe '#on_configs=()' do
+    let(:code_proc) { proc { puts 'hello' } }
+
+    it 'is expected to accept a callback and set its value on @on_configs' do
+      module_base.on_configs = code_proc
+      expect(module_base.instance_variable_get :@on_configs).to eq code_proc
     end
   end
 
@@ -440,6 +480,8 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#setup' do
+    after { module_base.shutdown false }
+
     context 'when #setup has never been called' do
       it 'is expected to call mqtt_client#connect' do
         expect(mqtt_client).to receive :connect
