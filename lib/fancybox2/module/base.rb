@@ -26,6 +26,18 @@ module Fancybox2
         @alive_task = nil
       end
 
+      def alive_message_data(&block)
+        if block_given?
+          @alive_message_data = block
+          return
+        end
+        @alive_message_data.call if @alive_message_data
+      end
+
+      def alive_message_data=(callback)
+        @alive_message_data = callback if callback.is_a?(Proc)
+      end
+
       def message_to(dest, action = '', payload = '', retain = false, qos = 2)
         if mqtt_client.connected?
           topic = topic_for dest: dest, action: action
@@ -212,10 +224,11 @@ module Fancybox2
         interval /= 1000
         @alive_task.shutdown if @alive_task
         @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
-          message_to :core, :alive, {
-              status: @status,
-              lastSeen: Time.now.utc
-          }
+          packet = { status: @status, lastSeen: Time.now.utc }
+          if @alive_message_data
+            packet[:data] = @alive_message_data.call
+          end
+          message_to :core, :alive, packet
         end
         @alive_task.execute
       end

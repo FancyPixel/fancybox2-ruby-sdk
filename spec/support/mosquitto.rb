@@ -1,3 +1,5 @@
+require 'open3'
+
 class Mosquitto
 
   CONFIG_FILE_PATH = File.expand_path('../../config/mosquitto.conf', __FILE__)
@@ -33,6 +35,7 @@ class Mosquitto
   end
 
   def self.start(config_file_path = CONFIG_FILE_PATH)
+    self.show_alerts
     self.pid = Process.spawn "mosquitto -c #{config_file_path}", [:out, :err] => '/dev/null'
     Process.detach pid
     # Also write new PID on file
@@ -55,4 +58,22 @@ class Mosquitto
     file.write(pid)
     file.close
   end
+
+  # :nocov:
+  def self.show_alerts
+    # Show some alert that can be an heads up to e.g. fix configs when things do not run properly
+    which, status = Open3.capture2 'which mosquitto'
+    if status.to_i.zero?
+      installed_mosquitto_path, status = Open3.capture2 "greadlink -f #{which}"
+      if status.to_i.zero?
+        puts "\nFound mosquitto server executable at: #{installed_mosquitto_path}"
+      else
+        puts "\nWARNING: error while trying to find mosquitto server executable"
+        puts "#{installed_mosquitto_path}"
+      end
+    else
+      raise '\nERROR: Mosquitto server not found on the system'
+    end
+  end
+  # :nocov:
 end

@@ -101,9 +101,42 @@ describe Fancybox2::Module::Base do
     end
   end
 
-  describe '#default_actions' do
-    it 'is expected to return an Hash of default actions' do
-      expect(module_base.send(:default_actions).keys).to eq [:start, :stop, :restart, :shutdown, :logger, :configs]
+  describe '#alive_message_data' do
+    let(:code_proc) { proc { puts 'hello' } }
+
+    context 'when a block is given' do
+      it 'is expected to accept a block and set its value on @alive_message_data' do
+        module_base.alive_message_data(&code_proc)
+        expect(module_base.instance_variable_get :@alive_message_data).to eq code_proc
+      end
+    end
+
+    context 'when no block is passed' do
+      it 'is expected to call the block if it was previously provided' do
+        module_base.alive_message_data(&code_proc)
+        expect(code_proc).to receive(:call)
+        module_base.alive_message_data
+      end
+    end
+  end
+
+  describe '#alive_message_data=()' do
+    let(:code_proc) { proc { puts 'hello' } }
+
+    context 'when passed argument is a Proc' do
+      it 'is expected to set @alive_message_data' do
+        module_base.alive_message_data = code_proc
+        expect(module_base.instance_variable_get :@alive_message_data).to eq code_proc
+      end
+    end
+
+    context 'when passed argument is not a Proc' do
+      let(:not_a_proc) { 'definitely_not_a_proc' }
+
+      it 'is expected to not set @alive_message_data' do
+        module_base.alive_message_data = not_a_proc
+        expect(module_base.instance_variable_get :@alive_message_data).to_not eq not_a_proc
+      end
     end
   end
 
@@ -616,6 +649,12 @@ describe Fancybox2::Module::Base do
       it 'is expected the broker logdev to use the module_base mqtt_client' do
         loggers = module_base.send(:create_default_logger).loggers
         expect(loggers.last.instance_variable_get(:@logdev).dev.client).to eq module_base.mqtt_client
+      end
+    end
+
+    describe '#default_actions' do
+      it 'is expected to return an Hash of default actions' do
+        expect(module_base.send(:default_actions).keys).to eq [:start, :stop, :restart, :shutdown, :logger, :configs]
       end
     end
 
