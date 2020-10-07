@@ -75,6 +75,7 @@ module Fancybox2
       end
 
       def on_configs(packet = nil, &block)
+        logger.debug 'on_configs'
         if block_given?
           @on_configs = block
           return
@@ -83,10 +84,12 @@ module Fancybox2
                      # Try to parse
                      JSON.parse packet.payload
                    rescue JSON::ParserError
+                     logger.debug 'on_configs: failed parsing packet as JSON, retrying with YAML'
                      begin
                        # Try to parse YAML
                        YAML.load packet.payload
                      rescue StandardError
+                       logger.debug 'on_configs: failed parsing packet as YAML. Falling back to raw payload'
                        # Fallback to original content
                        packet.payload
                      end
