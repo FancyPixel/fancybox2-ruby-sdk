@@ -1,15 +1,17 @@
 describe Fancybox2::Module::Base do
   let(:module_base_klass) { Fancybox2::Module::Base }
   let(:mqtt_client) { PahoMqtt::Client.new Mosquitto::LISTENER_CONFIGS }
-  let(:module_base) { Fancybox2::Module::Base.new mqtt_client: mqtt_client }
+  let(:path_of_fbxfile_example) { File.join File.dirname('.'), 'Fbxfile.example' }
+  let(:example_fbxfile) { YAML.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
+  let(:module_base) { Fancybox2::Module::Base.new path_of_fbxfile_example, mqtt_client: mqtt_client }
   let(:mqtt_client_params) { { host: 'some_valid_host', port: 2000 } }
   let(:log_level) { Logger::UNKNOWN }
   let(:log_progname) { 'Fancy Program' }
   let(:logger) { Logger.new STDOUT }
-  let(:path_of_fbxfile_example) { Fancybox2::Module::Config::FBXFILE_DEFAULT_FILE_PATH }
-  let(:example_fbxfile) { YAML.load(File.read(path_of_fbxfile_example)).deep_symbolize_keys }
 
-  it { should have_attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path, :configs }
+  subject { module_base }
+
+  it { is_expected.to have_attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path, :configs }
 
   describe 'initialize' do
     context 'with default params' do
@@ -30,72 +32,72 @@ describe Fancybox2::Module::Base do
     context 'allowed options' do
       context ':mqtt_client' do
         it 'is expected to accept the option and set its value on instance' do
-          base_instance = module_base_klass.new mqtt_client: mqtt_client
+          base_instance = module_base_klass.new path_of_fbxfile_example, mqtt_client: mqtt_client
           expect(base_instance.mqtt_client).to eq mqtt_client
         end
 
         it "is expected to keep :mqtt_client value only if its not nil" do
-          base_instance = module_base_klass.new mqtt_client: nil
+          base_instance = module_base_klass.new path_of_fbxfile_example, mqtt_client: nil
           expect(base_instance.mqtt_client).to_not eq nil
         end
       end
 
       context ':mqtt_client_params' do
         it 'is expected to accept the option and set its value on instance' do
-          base_instance = module_base_klass.new mqtt_client_params: mqtt_client_params
+          base_instance = module_base_klass.new path_of_fbxfile_example, mqtt_client_params: mqtt_client_params
           expect(base_instance.instance_variable_get :@mqtt_client_params).to eq mqtt_client_params
         end
 
         it 'is expected to default to an empty Hash if the value is nil' do
-          base_instance = module_base_klass.new mqtt_client_params: nil
+          base_instance = module_base_klass.new path_of_fbxfile_example, mqtt_client_params: nil
           expect(base_instance.instance_variable_get :@mqtt_client_params).to eq({})
         end
       end
 
       context ':log_level' do
         it 'is expected to accept the option and set its value on instance' do
-          base_instance = module_base_klass.new log_level: log_level
+          base_instance = module_base_klass.new path_of_fbxfile_example, log_level: log_level
           expect(base_instance.instance_variable_get :@log_level).to eq log_level
         end
 
         it 'is expected to default to Logger::INFO if option is not provided' do
-          base_instance = module_base_klass.new
+          base_instance = module_base_klass.new path_of_fbxfile_example
           expect(base_instance.instance_variable_get :@log_level).to eq Logger::INFO
         end
       end
 
       context ':log_progname' do
         it 'is expected to accept the option and set its value on instance' do
-          base_instance = module_base_klass.new log_progname: log_progname
+          base_instance = module_base_klass.new path_of_fbxfile_example, log_progname: log_progname
           expect(base_instance.instance_variable_get :@log_progname).to eq log_progname
         end
 
         it 'is expected to default to Fancybox2::Module::Base if option has not been provided' do
-          base_instance = module_base_klass.new
+          base_instance = module_base_klass.new path_of_fbxfile_example
           expect(base_instance.instance_variable_get :@log_progname).to eq 'Fancybox2::Module::Base'
         end
 
         it 'is expected to accept a nil value' do
-          base_instance = module_base_klass.new log_progname: nil
+          base_instance = module_base_klass.new path_of_fbxfile_example, log_progname: nil
           expect(base_instance.instance_variable_get :@log_progname).to be_nil
         end
       end
 
       it 'is expected to accept :logger option and set @logger on instance' do
-        base_instance = module_base_klass.new logger: logger
+        base_instance = module_base_klass.new path_of_fbxfile_example, logger: logger
         expect(base_instance.logger).to eq logger
       end
 
       it 'is expected to accept :fbxfile option and set @fbxfile on instance' do
         fbxfile = { some: 'option' }
-        base_instance = module_base_klass.new fbxfile: fbxfile
+        base_instance = module_base_klass.new path_of_fbxfile_example, fbxfile: fbxfile
         expect(base_instance.fbxfile).to eq fbxfile
       end
 
       it 'is expected to accept :fbxfile_path option and set @fbxfile_path on instance' do
         allow_any_instance_of(module_base_klass).to receive(:load_fbx_file).and_return({})
         fbxfile_path = '/some/path'
-        base_instance = module_base_klass.new fbxfile_path: fbxfile_path
+        base_instance = module_base_klass.new fbxfile_path
         expect(base_instance.fbxfile_path).to eq fbxfile_path
       end
     end
@@ -184,13 +186,11 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#on_action' do
-    let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
-
     before { mqtt_client.connect }
 
     it 'is expected to add a topic callback on mqtt_client' do
-      expect { base_module.on_action(:some_action, proc {}) }
-          .to change(base_module.mqtt_client.registered_callback, :size).by 1
+      expect { module_base.on_action(:some_action, proc {}) }
+          .to change(module_base.mqtt_client.registered_callback, :size).by 1
     end
   end
 
@@ -451,17 +451,16 @@ describe Fancybox2::Module::Base do
   end
 
   describe '#remove_action' do
-    let(:base_module) { module_base_klass.new mqtt_client: mqtt_client }
     let(:action) { 'some_action' }
 
     before do
       mqtt_client.connect
-      base_module.on_action(action {})
+      module_base.on_action(action {})
     end
 
     it 'is expected to remove a topic callback on mqtt_client' do
-      expect { base_module.remove_action action }
-          .to change(base_module.mqtt_client.registered_callback, :size).by(-1)
+      expect { module_base.remove_action action }
+          .to change(module_base.mqtt_client.registered_callback, :size).by(-1)
     end
   end
 
@@ -659,13 +658,13 @@ describe Fancybox2::Module::Base do
     end
 
     describe '#load_fbx_file' do
-      context 'when an Fbxfile exists at path' do
+      context 'when an Fbxfile.example exists at path' do
         it 'it is expected to return the file content as an Hash' do
           expect(module_base.send(:load_fbx_file)).to be_a Hash
         end
       end
 
-      context 'when no Fbxfile exists at path' do
+      context 'when no Fbxfile.example exists at path' do
         let(:bad_path) { 'bad/path' }
 
         before { module_base.instance_variable_set :@fbxfile_path, bad_path }
