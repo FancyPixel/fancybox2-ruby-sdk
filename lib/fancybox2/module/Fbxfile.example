@@ -1,0 +1,16 @@
+name: ruby_base_module
+version: 0
+type: module
+language: ruby
+title: Ruby Base Module
+command: bundle
+args: exec ruby
+env:
+  BUNDLE_APP_CONFIG: "./vendor/bundle"
+options:
+  endpoints:
+    frontend:
+      type: embed
+    api:
+      type: proxy
+      port: 4000

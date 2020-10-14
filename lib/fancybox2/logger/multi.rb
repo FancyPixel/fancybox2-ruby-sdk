@@ -1,5 +1,3 @@
-require 'logger'
-
 module Fancybox2
   module Logger
 
@@ -15,36 +13,44 @@ module Fancybox2
     class Multi
       attr_accessor :loggers, :level, :escape_data, :progname
 
-      def initialize(*args)# level: nil, loggers: nil, escape_data: true)
+      # logger_1, logger_2, ... , level: nil, loggers: nil, escape_data: true)
+      def initialize(*args)
         options = args.extract_options.deep_symbolize_keys
         loggers = args
         if !loggers.is_a?(Array) || loggers.size.zero?
           raise ArgumentError.new("provide at least one logger instance")
         end
-        @loggers = []
-        @level = options[:level]
+
+        @level = normalize_log_level(options[:level])
         @escape_data = options[:escape_data] || false
         @progname = options[:progname]
 
         self.loggers = loggers
+        # Set properties
+        # Override Loggers levels only if explicitly required
+        self.level = @level if options[:level] # Do not use @level because it has already been processed
+        # Override Logger's Formatter only if explicitly required
+        self.escape_data = @escape_data if @escape_data
+        self.progname = @progname if @progname
+
         define_methods
       end
 
       def add(level, *args)
-        @loggers.each { |logger| logger.add(level, args) }
+        @loggers.each { |logger| logger.add(level, *args) }
       end
+      alias log add
 
       def add_logger(logger)
-        logger.level = @level if @level
-        logger.progname = @progname if @progname
-        if escape_data
-          escape_data_of logger
-        end
         @loggers << logger
       end
 
       def close
         @loggers.map(&:close)
+      end
+
+      def default_log_level
+        'info'
       end
 
       def escape_data=(value)
@@ -58,18 +64,25 @@ module Fancybox2
       end
 
       def level=(level)
-        @level = level
+        @level = normalize_log_level(level)
         @loggers.each { |logger| logger.level = level }
       end
 
-      def loggers=(loggers)
-        loggers.each do |logger|
+      def loggers=(new_loggers)
+        @loggers = []
+        new_loggers.each do |logger|
           # Check if provided loggers are real Loggers
           unless logger.is_a? ::Logger
             raise ArgumentError.new("one of the provided loggers is not of class Logger, but of class '#{logger.class}'")
           end
           # Add Logger to the list
           add_logger logger
+        end
+      end
+
+      def progname=(name)
+        loggers.each do |logger|
+          logger.progname = name
         end
       end
 
@@ -98,13 +111,15 @@ module Fancybox2
       # @param [String] log_level
       def normalize_log_level(log_level)
         case log_level
-        when :debug, ::Logger::DEBUG, 'debug' then ::Logger::DEBUG
-        when :info,  ::Logger::INFO,  'info'  then ::Logger::INFO
-        when :warn,  ::Logger::WARN,  'warn'  then ::Logger::WARN
-        when :error, ::Logger::ERROR, 'error' then ::Logger::ERROR
-        when :fatal, ::Logger::FATAL, 'fatal' then ::Logger::FATAL
+        when :unknown, ::Logger::UNKNOWN, 'unknown' then ::Logger::UNKNOWN
+        when :debug,   ::Logger::DEBUG,   'debug'   then ::Logger::DEBUG
+        when :info,    ::Logger::INFO,    'info'    then ::Logger::INFO
+        when :warn,    ::Logger::WARN,    'warn'    then ::Logger::WARN
+        when :error,   ::Logger::ERROR,   'error'   then ::Logger::ERROR
+        when :fatal,   ::Logger::FATAL,   'fatal'   then ::Logger::FATAL
         else
-          ::Logger::INFO
+          # puts "Fancybox2::Logger::Multi#normalize_log_level, log_level value '#{log_level.inspect}' not supported, defaulting to '#{default_log_level}'"
+          normalize_log_level(default_log_level)
         end
       end
     end

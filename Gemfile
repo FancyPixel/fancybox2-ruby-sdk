@@ -4,5 +4,14 @@ source "https://rubygems.org"
 
 git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 
-gem 'zeitwerk', '~> 2.3.0'
-gem 'paho-mqtt', '~> 1.0.12'
+gemspec
+
+# gem 'paho-mqtt'#, github: 'FancyPixel/paho.mqtt.ruby'
+
+group :test do
+  gem 'rspec', '~> 3.9.0'
+  gem 'guard', '~> 2.16.2'
+  gem 'guard-rspec', '~> 4.7.3'
+  gem 'guard-bundler', '~> 2.2.1'
+  gem 'simplecov', require: false
+end

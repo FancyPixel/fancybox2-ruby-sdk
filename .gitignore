@@ -1,3 +1,4 @@
+.DS_Store
 /.bundle/
 /.yardoc
 /Gemfile.lock
@@ -10,4 +11,9 @@
 .idea/
 *.orig
 .ruby-version
-spec/
+*.log
+*_log
+app.rb
+test.rb
+Fbxfile
+examples.txt
