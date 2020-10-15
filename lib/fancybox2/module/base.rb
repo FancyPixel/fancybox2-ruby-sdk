@@ -11,11 +11,15 @@ module Fancybox2
       attr_reader :logger, :mqtt_client, :fbxfile, :fbxfile_path, :status
       attr_accessor :configs
 
-      def initialize(*args)
-        options = args.extract_options.deep_symbolize_keys!
+      def initialize(fbxfile_path, options = {})
+        unless fbxfile_path || fbxfile_path.is_a?(String) || fbxfile_path.empty?
+          raise FbxfileNotProvided
+        end
+
+        @fbxfile_path = fbxfile_path
+        options.deep_symbolize_keys!
         @internal_mqtt_client = false
 
-        @fbxfile_path = options.fetch :fbxfile_path, Config::FBXFILE_DEFAULT_FILE_PATH
         @fbxfile = check_and_return_fbxfile options.fetch(:fbxfile, load_fbx_file)
         @mqtt_client_params = options[:mqtt_client_params] || {}
         check_or_build_mqtt_client options[:mqtt_client]

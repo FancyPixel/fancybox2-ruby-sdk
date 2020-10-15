@@ -1,0 +1,17 @@
+language: ruby
+rvm:
+  - 2.7.2
+
+services:
+  - docker
+
+before_install:
+  - gem install bundler -v 2.1.4
+  - docker pull eclipse-mosquitto
+  - docker run -it -d -p 1883:1883 -p 9001:9001 eclipse-mosquitto
+
+env:
+  - MOSQUITTO_HOST=localhost MOSQUITTO_PORT=1883
+
+script:
+  - bundle exec rspec
