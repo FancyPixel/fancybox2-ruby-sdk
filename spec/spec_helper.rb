@@ -19,6 +19,7 @@ RSpec.configure do |config|
 
   config.before(:suite) do
     # Do not start local mosquitto if a remote one gets used
+    puts ENV.inspect
     unless ENV['MOSQUITTO_HOST'] && ENV['MOSQUITTO_PORT']
       Mosquitto.start; sleep(0.5) # Give time to mosquitto to startup
     end
