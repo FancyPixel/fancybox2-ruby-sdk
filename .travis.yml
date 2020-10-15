@@ -8,10 +8,11 @@ services:
 before_install:
   - gem install bundler -v 2.1.4
   - docker pull eclipse-mosquitto
-  - docker run -it -d -p 1883:2883 -p 9001:9001 eclipse-mosquitto
+  - docker run -it -d -p 1883:1883 -p 9001:9001 eclipse-mosquitto
 
 env:
-  - REMOTE_MOSQUITTO=true
+  - MOSQUITTO_HOST=localhost
+  - MOSQUITTO_PORT=1883
 
 script:
   - bundle exec rspec
