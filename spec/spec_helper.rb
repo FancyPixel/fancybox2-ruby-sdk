@@ -18,12 +18,17 @@ RSpec.configure do |config|
   Mosquitto.kill_zombies
 
   config.before(:suite) do
-    Mosquitto.start; sleep(0.5) # Give time to mosquitto to startup
+    # Do not start local mosquitto if a remote one gets used
+    unless ENV['MOSQUITTO_HOST'] && ENV['MOSQUITTO_PORT']
+      Mosquitto.start; sleep(0.5) # Give time to mosquitto to startup
+    end
   end
 
   config.after(:suite) do
-    sleep(0.1) # Wait for late processes that are already connected to broker
-    Mosquitto.stop
+    unless Mosquitto.pid.nil?
+      sleep(0.1) # Wait for late processes that are already connected to broker
+      Mosquitto.stop
+    end
   end
 
   config.before(:each) do

@@ -4,9 +4,12 @@ class Mosquitto
 
   CONFIG_FILE_PATH = File.expand_path('../../config/mosquitto.conf', __FILE__)
   DEFAULT_PID_FILE_PATH = File.expand_path('../../tmp/mosquitto.pid', __FILE__)
+  CONFIG = File.read CONFIG_FILE_PATH
+  BIND_ADDRESS = CONFIG.scan(/^bind_address\s+(.+)\s*$/).flatten.first || 'localhost'
+  BIND_PORT = CONFIG.scan(/^port\s+(\d+)\s*$/).flatten.first || 1883
   LISTENER_CONFIGS = {
-      host: 'localhost',
-      port: 2883
+      host: (ENV['MOSQUITTO_HOST'] || BIND_ADDRESS),
+      port: (ENV['MOSQUITTO_PORT'] || BIND_PORT)
   }
 
   def self.delete_pid_file(pid_file_path = DEFAULT_PID_FILE_PATH)
@@ -50,6 +53,7 @@ class Mosquitto
   # :nocov:
   def self.kill(pid = self.pid)
     Process.kill('KILL', pid) rescue nil
+    self.pid = nil
   end
   # :nocov:
 

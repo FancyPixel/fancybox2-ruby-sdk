@@ -10,5 +10,8 @@ before_install:
   - docker pull eclipse-mosquitto
   - docker run -it -d -p 1883:2883 -p 9001:9001 eclipse-mosquitto
 
+env:
+  - REMOTE_MOSQUITTO=true
+
 script:
   - bundle exec rspec
