@@ -1,6 +1,7 @@
 <p align="center">
   <img width="480" src="assets/logo.png"/>
 </p>
+
 [![Build Status](https://travis-ci.org/FancyPixel/fancybox2-ruby-sdk.svg)](https://travis-ci.org/FancyPixel/fancybox2-ruby-sdk)
 [![Gem Version](https://badge.fury.io/rb/fancybox2.svg)](https://badge.fury.io/rb/fancybox2)
 

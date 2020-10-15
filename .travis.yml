@@ -8,7 +8,7 @@ services:
 before_install:
   - gem install bundler -v 2.1.4
   - docker pull eclipse-mosquitto
-  - docker run -it -p 1883:2883 -p 9001:9001 eclipse-mosquitto
+  - docker run -it -d -p 1883:2883 -p 9001:9001 eclipse-mosquitto
 
 script:
   - bundle exec rspec
