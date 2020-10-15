@@ -72,7 +72,7 @@ class Mosquitto
         puts "#{installed_mosquitto_path}"
       end
     else
-      raise '\nERROR: Mosquitto server not found on the system'
+      puts "\nERROR: Mosquitto server not found on the system, maybe it's a docker container so keep going"
     end
   end
   # :nocov:
