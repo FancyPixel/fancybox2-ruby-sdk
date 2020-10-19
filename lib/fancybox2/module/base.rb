@@ -231,11 +231,14 @@ module Fancybox2
         interval /= 1000.0
         @alive_task.shutdown if @alive_task
         @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
-          packet = { status: @status, lastSeen: Time.now.utc }
-          if @alive_message_data
-            packet[:data] = @alive_message_data.call
+          packet = { status: @status, lastSeen: Time.now.utc, data: nil }
+          begin
+            packet[:data] = alive_message_data
+            message_to :core, :alive, packet
+          rescue StandardError => e
+            logger.error "Error in alive_message_data callback:  #{e.message}"
+            logger.error e.backtrace.join "\n"
           end
-          message_to :core, :alive, packet
         end
         @alive_task.execute
       end
