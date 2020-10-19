@@ -228,7 +228,7 @@ module Fancybox2
       def start_sending_alive(interval: 5000)
         # TODO: replace the alive interval task with Eventmachine?
         # Interval is expected to be msec, so convert it to secs
-        interval /= 1000
+        interval /= 1000.0
         @alive_task.shutdown if @alive_task
         @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
           packet = { status: @status, lastSeen: Time.now.utc }
