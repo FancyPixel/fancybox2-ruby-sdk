@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Fancybox2
   module Logger
     class MQTTLogDevice
@@ -11,10 +13,13 @@ module Fancybox2
         unless @client.respond_to?(:publish)
           raise ArgumentError, "provided client does not respond to 'publish'"
         end
+        unless @client.respond_to?(:connected?)
+          raise ArgumentError, "provided client does not respond to 'connected?'"
+        end
       end
 
       def write(message)
-        if @client.connected?
+        if @client && @client.connected?
           @client.publish @topic, message
         end
       end

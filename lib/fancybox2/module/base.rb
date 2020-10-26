@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'yaml'
 require 'logger'
@@ -140,6 +142,8 @@ module Fancybox2
           return
         end
 
+        @status = :on_shutdown
+
         shutdown_ok = true
         logger.debug "Received 'shutdown' command"
         # Stop sending alive messages
@@ -160,17 +164,20 @@ module Fancybox2
         message_to :core, :shutdown, { status: shutdown_message }
         sleep 0.05 # Wait some time in order to be sure that the message has been published (message is not mandatory)
 
-        if mqtt_client && mqtt_client.connected?
-          # Gracefully disconnect from broker and exit
-          logger.debug 'Disconnecting from broker'
-          mqtt_client.disconnect
-        end
+        Thread.new do
+          if mqtt_client && mqtt_client.connected?
+            # Gracefully disconnect from broker and exit
+            logger.debug 'Disconnecting from broker, bye'
+            mqtt_client.disconnect
+            @mqtt_client = nil
+          end
 
-        if do_exit
-          # Exit from process
-          status_code = shutdown_ok ? 0 : 1
-          logger.debug "Exiting with status code #{status_code}"
-          exit status_code
+          if do_exit
+            # Exit from process
+            status_code = shutdown_ok ? 0 : 1
+            logger.debug "Exiting with status code #{status_code}"
+            exit status_code
+          end
         end
       end
 
@@ -228,14 +235,17 @@ module Fancybox2
       def start_sending_alive(interval: 5000)
         # TODO: replace the alive interval task with Eventmachine?
         # Interval is expected to be msec, so convert it to secs
-        interval /= 1000
+        interval /= 1000.0
         @alive_task.shutdown if @alive_task
         @alive_task = Concurrent::TimerTask.new(execution_interval: interval, timeout_interval: 2, run_now: true) do
-          packet = { status: @status, lastSeen: Time.now.utc }
-          if @alive_message_data
-            packet[:data] = @alive_message_data.call
+          packet = { status: @status, lastSeen: Time.now.utc, data: nil }
+          begin
+            packet[:data] = alive_message_data
+            message_to :core, :alive, packet
+          rescue StandardError => e
+            logger.error "Error in alive_message_data callback:  #{e.message}"
+            logger.error e.backtrace.join "\n"
           end
-          message_to :core, :alive, packet
         end
         @alive_task.execute
       end
@@ -353,12 +363,12 @@ module Fancybox2
 
       def create_default_logger
         stdout_logger = ::Logger.new STDOUT
-        broker_logger = ::Logger.new(Logger::MQTTLogDevice.new(topic_for(dest: :core, action: :logs),
-                                                               client: mqtt_client),
-                                     formatter: Logger::JSONFormatter.new)
-        logger = Logger::Multi.new stdout_logger, broker_logger,
-                                    level: @log_level,
-                                    progname: @log_progname
+        # broker_logger = ::Logger.new(Logger::MQTTLogDevice.new(topic_for(dest: :core, action: :logs),
+        #                                                        client: mqtt_client),
+        #                              formatter: Logger::JSONFormatter.new)
+        logger = Logger::Multi.new stdout_logger,# broker_logger,
+                                   level: @log_level,
+                                   progname: @log_progname
         logger
       end
 
