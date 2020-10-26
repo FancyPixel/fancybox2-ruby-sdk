@@ -142,6 +142,8 @@ module Fancybox2
           return
         end
 
+        @status = :on_shutdown
+
         shutdown_ok = true
         logger.debug "Received 'shutdown' command"
         # Stop sending alive messages
@@ -162,17 +164,20 @@ module Fancybox2
         message_to :core, :shutdown, { status: shutdown_message }
         sleep 0.05 # Wait some time in order to be sure that the message has been published (message is not mandatory)
 
-        if mqtt_client && mqtt_client.connected?
-          # Gracefully disconnect from broker and exit
-          logger.debug 'Disconnecting from broker'
-          mqtt_client.disconnect
-        end
+        Thread.new do
+          if mqtt_client && mqtt_client.connected?
+            # Gracefully disconnect from broker and exit
+            logger.debug 'Disconnecting from broker, bye'
+            mqtt_client.disconnect
+            @mqtt_client = nil
+          end
 
-        if do_exit
-          # Exit from process
-          status_code = shutdown_ok ? 0 : 1
-          logger.debug "Exiting with status code #{status_code}"
-          exit status_code
+          if do_exit
+            # Exit from process
+            status_code = shutdown_ok ? 0 : 1
+            logger.debug "Exiting with status code #{status_code}"
+            exit status_code
+          end
         end
       end
 
@@ -358,12 +363,12 @@ module Fancybox2
 
       def create_default_logger
         stdout_logger = ::Logger.new STDOUT
-        broker_logger = ::Logger.new(Logger::MQTTLogDevice.new(topic_for(dest: :core, action: :logs),
-                                                               client: mqtt_client),
-                                     formatter: Logger::JSONFormatter.new)
-        logger = Logger::Multi.new stdout_logger, broker_logger,
-                                    level: @log_level,
-                                    progname: @log_progname
+        # broker_logger = ::Logger.new(Logger::MQTTLogDevice.new(topic_for(dest: :core, action: :logs),
+        #                                                        client: mqtt_client),
+        #                              formatter: Logger::JSONFormatter.new)
+        logger = Logger::Multi.new stdout_logger,# broker_logger,
+                                   level: @log_level,
+                                   progname: @log_progname
         logger
       end
 
