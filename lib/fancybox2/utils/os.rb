@@ -4,7 +4,7 @@ module Fancybox2
       extend self
 
       def identifier
-        return @indentifier if @indentifier
+        return @identifier if @identifier
 
         host_os = RbConfig::CONFIG['host_os']
         case host_os
