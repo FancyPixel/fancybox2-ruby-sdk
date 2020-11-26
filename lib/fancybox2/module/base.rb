@@ -30,6 +30,7 @@ module Fancybox2
         @logger = options.fetch :logger, create_default_logger
         @status = :stopped
         @alive_task = nil
+        @configs = {}
       end
 
       def alive_message_data(&block)
@@ -86,20 +87,16 @@ module Fancybox2
           @on_configs = block
           return
         end
-        @configs = begin
-                     # Try to parse
-                     JSON.parse packet.payload
-                   rescue JSON::ParserError
-                     logger.debug 'on_configs: failed parsing packet as JSON, retrying with YAML'
-                     begin
-                       # Try to parse YAML
-                       YAML.load packet.payload
-                     rescue StandardError
-                       logger.debug 'on_configs: failed parsing packet as YAML. Falling back to raw payload'
-                       # Fallback to original content
-                       packet.payload
-                     end
-                   end
+        begin
+          # Try to parse
+          cfg = JSON.parse packet.payload
+          if cfg['configs']
+            self.configs.merge! cfg['configs']
+          end
+        rescue JSON::ParserError
+          logger.debug 'on_configs: failed parsing packet as JSON'
+        end
+
         @on_configs.call(packet) if @on_configs
       end
 
@@ -193,8 +190,8 @@ module Fancybox2
         # Call user code
         @on_start.call(packet) if @on_start
 
-        configs = packet ? packet.payload : {}
-        interval = configs['aliveTimeout'] || 1000
+        cfg = packet ? packet.payload : {}
+        interval = cfg['aliveTimeout'] || 1000
         # Start code execution from scratch
         logger.debug "Received 'start'"
         @status = :running
