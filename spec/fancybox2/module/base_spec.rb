@@ -25,7 +25,6 @@ describe Fancybox2::Module::Base do
 
       it 'is expected the multi logger to include loggers logging on [STDOUT, MQTTLogDevice]' do
         expect(module_base.logger.loggers[0].instance_variable_get(:@logdev).dev).to eq STDOUT
-        expect(module_base.logger.loggers[1].instance_variable_get(:@logdev).dev).to be_a Fancybox2::Logger::MQTTLogDevice
       end
     end
 
@@ -196,9 +195,8 @@ describe Fancybox2::Module::Base do
 
   describe '#on_configs' do
     let(:code_proc) { proc { puts 'hello' } }
-    let(:json_packet) { double('Some json packet', payload: '{"some": "property"}') }
-    let(:yaml_packet) { double('Some yaml packet', payload: "---\n:a: 20\n:b: 10\n") }
-    let(:complex_packet) { double('Some yaml packet', payload: "something:\n  not:\n yaml_or_json") }
+    let(:json_packet) { double('Some json packet', payload: '{"some": "property", "configs": {"foo": "bar"}, "path": "some/file/path" }') }
+    let(:complex_packet) { double('Some yaml packet', payload: "something:\n  not:\n json") }
 
     it 'is expected to accept a block and set its value on @on_configs' do
       module_base.on_configs(&code_proc)
@@ -206,25 +204,20 @@ describe Fancybox2::Module::Base do
     end
 
     it 'is expected to call provided block with packet as argument' do
-      packet = [json_packet, yaml_packet, complex_packet].sample
+      packet = [json_packet, complex_packet].sample
       module_base.on_configs(&code_proc)
       expect(code_proc).to receive(:call).with packet
       module_base.on_configs packet
     end
 
     it 'is expected to try to parse a JSON payload' do
+      expect(JSON).to receive :parse
       module_base.on_configs json_packet
-      expect(module_base.instance_variable_get :@configs).to eq JSON.parse(json_packet.payload)
     end
 
-    it 'is expected to try to parse a YAML payload' do
-      module_base.on_configs yaml_packet
-      expect(module_base.instance_variable_get :@configs).to eq YAML.load(yaml_packet.payload)
-    end
-
-    it 'is expected to fallback to original packet payload if any parsing attempt failed' do
-      module_base.on_configs complex_packet
-      expect(module_base.instance_variable_get :@configs).to eq complex_packet.payload
+    it "is expected to merge found configs if 'configs' key is present into payload" do
+      module_base.on_configs json_packet
+      expect(module_base.configs).to include 'foo' => 'bar'
     end
   end
 
@@ -310,7 +303,7 @@ describe Fancybox2::Module::Base do
     before do
       module_base.setup
       module_base.start_sending_alive interval: 1000
-      allow(module_base).to receive(:exit).with(any_args).and_return false
+      allow(Kernel).to receive(:exit).with(any_args).and_return false
     end
 
     context 'when a block is provided' do
@@ -351,11 +344,6 @@ describe Fancybox2::Module::Base do
 
     it 'is expected to call mqtt_client#disconnect' do
       expect(mqtt_client).to receive :disconnect
-      module_base.on_shutdown
-    end
-
-    it 'is expected to exit with a 0 status code' do
-      expect(module_base).to receive(:exit).with 0
       module_base.on_shutdown
     end
   end
@@ -637,17 +625,6 @@ describe Fancybox2::Module::Base do
       it 'is expected the returned Multi logger includes a STDOUT and a MQTT broker logger' do
         loggers = module_base.send(:create_default_logger).loggers
         expect(loggers.first.instance_variable_get(:@logdev).dev).to eq STDOUT
-        expect(loggers.last.instance_variable_get(:@logdev).dev).to be_a Fancybox2::Logger::MQTTLogDevice
-      end
-
-      it 'is expected the broker logger to have a Fancybox2::Logger::JSONFormatter formatter' do
-        loggers = module_base.send(:create_default_logger).loggers
-        expect(loggers.last.formatter).to be_a Fancybox2::Logger::JSONFormatter
-      end
-
-      it 'is expected the broker logdev to use the module_base mqtt_client' do
-        loggers = module_base.send(:create_default_logger).loggers
-        expect(loggers.last.instance_variable_get(:@logdev).dev.client).to eq module_base.mqtt_client
       end
     end
 
