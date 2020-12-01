@@ -90,7 +90,7 @@ module Fancybox2
         begin
           # Try to parse
           cfg = JSON.parse packet.payload
-          if cfg['configs']
+          if cfg && cfg['configs']
             self.configs.merge! cfg['configs']
           end
         rescue JSON::ParserError
