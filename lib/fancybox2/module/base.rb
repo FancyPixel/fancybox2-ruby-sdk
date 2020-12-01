@@ -88,9 +88,8 @@ module Fancybox2
           return
         end
         begin
-          # Try to parse
-          cfg = JSON.parse packet.payload
-          if cfg && cfg['configs']
+          cfg = packet.payload
+          if cfg && cfg.is_a?(Hash) && cfg['configs']
             self.configs.merge! cfg['configs']
           end
         rescue JSON::ParserError
