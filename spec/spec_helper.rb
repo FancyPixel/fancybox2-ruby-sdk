@@ -14,7 +14,7 @@ RSpec.configure do |config|
   # config.example_status_persistence_file_path = 'examples.txt'
 
   # Ensure no previous (zombie) mosquitto instance is still alive.
-  # This can happen, for instance, when the test suite crashes due to a syntax error, and so Mosquitto.stop is not called
+  # This can happen, for instance, when the mock suite crashes due to a syntax error, and so Mosquitto.stop is not called
   Mosquitto.kill_zombies
 
   config.before(:suite) do

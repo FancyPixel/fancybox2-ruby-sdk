@@ -16,4 +16,4 @@
 app.rb
 test.rb
 examples.txt
-/lib/fancybox2/migrations/test/
+/spec/config/test/
