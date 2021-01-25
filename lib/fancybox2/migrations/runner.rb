@@ -19,18 +19,23 @@ module Fancybox2
 
       attr_reader :files_path, :current_version, :migrations
 
-      def initialize(files_path, current_version = nil)
+      def initialize(files_path)
         @files_path = files_path
-        if current_version
-          @current_version = self.class.extract_and_validate_version_from current_version
-        end
 
         load_migrations
       end
-
+      
+      # @param from a valid migration name or version
+      # @param to a valid migration name or version
       def run(from: nil, to: nil)
+        # Extract and validate versions
+        from = self.class.extract_and_validate_version_from from
+        to = self.class.extract_and_validate_version_from to
         # Select migrations to run
-        to_run = migrations_to_run from, to
+        to_run, direction = migrations_to_run from, to
+        to_run.each do |migration|
+          migration.send direction
+        end
       end
 
       def load_migrations
@@ -44,16 +49,18 @@ module Fancybox2
         end
       end
 
-      # Select migrations to run depending on direction
-      # :up selects only migration with a version greater than current_version
-      # :down selects migrations with a version lower_or_equal_to current_version
+      # Select migrations to run depending given a starting and an ending one
       def migrations_to_run(from, to)
         selected = []
+        direction = from <= to ? :up : :down
         @migrations.each do |m|
+          break if (from == to)
           # Break if we already arrived to "from" migration
           break if (from > to) && (m.version > from)
           # Break if we already arrived to "to" migration
           break if (from < to) && (m.version > to)
+          # Skip until we arrive to "to" migration
+          next if (from > to) && (m.version < to)
           # Skip until we arrive to "from" migration
           next if (from < to) && (m.version < from)
 
@@ -64,7 +71,7 @@ module Fancybox2
           end
         end
 
-        selected
+        [selected, direction]
       end
     end
   end
