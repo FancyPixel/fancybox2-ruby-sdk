@@ -87,13 +87,10 @@ module Fancybox2
           @on_configs = block
           return
         end
-        begin
-          cfg = packet.payload
-          if cfg && cfg.is_a?(Hash) && cfg['configs']
-            self.configs.merge! cfg['configs']
-          end
-        rescue JSON::ParserError
-          logger.debug 'on_configs: failed parsing packet as JSON'
+
+        cfg = packet.payload
+        if cfg && cfg.is_a?(Hash) && cfg['configs']
+          self.configs.merge! cfg['configs']
         end
 
         @on_configs.call(packet) if @on_configs
