@@ -8,12 +8,12 @@ module Fancybox2
       class << self
 
         def extract_and_validate_version_from(migration_name)
-          version = migration_name.to_s.scan(VERSION_REGEXP).flatten.first
-          unless version
-            raise ArgumentError, 'migration name must start with an integer number e.g: 02_do_something.rb'
+          version = migration_name.to_s.scan(VERSION_REGEXP).flatten.first.to_i
+          if version.zero?
+            raise ArgumentError, 'migration name must start with an integer number greater than zero e.g: 1_do_something.rb'
           end
 
-          version.to_i
+          version
         end
       end
 
