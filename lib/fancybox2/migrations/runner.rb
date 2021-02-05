@@ -3,14 +3,14 @@ module Fancybox2
     class Runner
       include Exceptions
 
-      VERSION_REGEXP = /^(\d{14})/.freeze
+      VERSION_REGEXP = /^(\d+)/.freeze
 
       class << self
 
         def extract_and_validate_version_from(migration_name)
           version = migration_name.to_s.scan(VERSION_REGEXP).flatten.first
           unless version
-            raise ArgumentError, 'migration version must be a 14 digits integer'
+            raise ArgumentError, 'migration name must start with an integer number e.g: 02_do_something.rb'
           end
 
           version.to_i
@@ -24,7 +24,7 @@ module Fancybox2
 
         load_migrations
       end
-      
+
       # @param from a valid migration name or version
       # @param to a valid migration name or version
       def run(from: nil, to: nil)
@@ -40,13 +40,13 @@ module Fancybox2
 
       def load_migrations
         # Load files from files_path and create classes
-        @migrations = Dir[File.join(File.expand_path(files_path), '**', '*.rb')].sort.map do |f_path|
-          migration_name = File.basename(f_path)
+        @migrations = Dir[File.join(File.expand_path(files_path), '**', '*.rb')].map do |file_path|
+          migration_name = File.basename(file_path)
           klass = Class.new(Base)
-          klass.class_eval(File.read(f_path), f_path)
+          klass.class_eval(File.read(file_path), file_path)
           klass.freeze
           klass.new migration_name
-        end
+        end.sort_by { |migration| migration.version }
       end
 
       # Select migrations to run depending given a starting and an ending one
