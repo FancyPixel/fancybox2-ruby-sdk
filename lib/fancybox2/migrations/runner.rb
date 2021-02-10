@@ -37,7 +37,6 @@ module Fancybox2
         from = self.class.extract_and_validate_version_from(from || last_migrated || 0)
         # This works independently from the direction if migrations' folder contains only migrations of last installed version
         to = self.class.extract_and_validate_version_from (to || @migrations.last.version)
-        puts "from: #{from}, to: #{to}, last_migrated: #{last_migrated}"
         # Select migrations to run
         to_run, direction = migrations_to_run from, to
         # If last_migrated has been specified and direction is :up, remove first migration
@@ -68,7 +67,6 @@ module Fancybox2
         selected = []
         direction = from <= to ? :up : :down
         @migrations.each do |m|
-          puts m.version
           # Edge case, no migrations to run
           break if from == to
           # downgrading - Break if we already arrived to "from" migration (e.g from=4, to=2 => 1, >2<, 3, *4*, 5)
