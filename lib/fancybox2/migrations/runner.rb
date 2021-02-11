@@ -15,6 +15,22 @@ module Fancybox2
 
           version.to_i
         end
+
+        def auto(migrations_folder, last_migrated_file_path: nil, logger: nil)
+          # Try to read file content, rescue with nil
+          content = File.read(last_migrated_file_path) rescue nil
+          # Extract last run migration version
+          last_run_migration_version = content.to_i
+
+          runner = new(migrations_folder, logger: logger)
+          last_migrated = runner.run last_migrated: last_run_migration_version
+          # Update migration status file
+          if last_migrated
+            f = File.open last_migrated_file_path, 'w'
+            f.write last_migrated.version
+            f.close
+          end
+        end
       end
 
       attr_reader :files_path, :current_version, :migrations, :logger
@@ -39,9 +55,14 @@ module Fancybox2
         to = self.class.extract_and_validate_version_from (to || @migrations.last.version)
         # Select migrations to run
         to_run, direction = migrations_to_run from, to
-        # If last_migrated has been specified and direction is :up, remove first migration
-        if last_migrated && direction == :up
-          to_run.shift
+        # If last_migrated param has been provided, remove some migration from the list depending on direction
+        if last_migrated && to_run.any?
+          if direction == :up && last_migrated == to_run.first.version
+            to_run.shift
+          elsif direction == :down
+            # We surely have at least 2 migrations in the array, otherwise the direction would've been :up
+            to_run.pop
+          end
         end
         to_run.each do |migration|
           logger.info "Running migration #{migration.name}"
@@ -67,8 +88,6 @@ module Fancybox2
         selected = []
         direction = from <= to ? :up : :down
         @migrations.each do |m|
-          # Edge case, no migrations to run
-          break if from == to
           # downgrading - Break if we already arrived to "from" migration (e.g from=4, to=2 => 1, >2<, 3, *4*, 5)
           break if (from > to) && (m.version > from)
           # upgrading - Break if we already arrived to "to" migration (e.g from=2, to=4 => 1, *2*, 3, >4<, 5)
@@ -76,7 +95,9 @@ module Fancybox2
           # downgrading - Skip until we arrive to "to" migration (e.g from=4, to=2 => 1, >2<, 3, *4*, 5)
           next if (from > to) && (m.version < to)
           # upgrading - Skip until we arrive to "from" migration (e.g from=2, to=4 => 1, *2*, 3, >4<, 5)
-          next if (from < to) && (m.version < from)
+          next if (from <= to) && (m.version < from)
+          # Break if we're already out of range
+          break if (m.version > from && m.version > to)
 
           if m.version <= from
             selected.prepend m
