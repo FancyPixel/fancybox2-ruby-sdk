@@ -13,14 +13,14 @@ class Mosquitto
   }
 
   def self.delete_pid_file(pid_file_path = DEFAULT_PID_FILE_PATH)
-    if File.exists?(pid_file_path)
+    if File.exist?(pid_file_path)
       File.delete pid_file_path
     end
   end
 
   # :nocov:
   def self.kill_zombies(pid_file_path = DEFAULT_PID_FILE_PATH)
-    if File.exists? pid_file_path
+    if File.exist? pid_file_path
       pid = File.read(pid_file_path).to_i
       if pid > 0
         self.kill pid

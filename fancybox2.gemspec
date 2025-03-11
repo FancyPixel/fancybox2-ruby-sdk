@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.files         = Dir['README.md', 'MIT-LICENSE', 'lib/**/*.rb']
   spec.required_ruby_version = '>= 2.5.0'
 
-  spec.add_dependency 'zeitwerk',   '~> 2.3.0'
-  spec.add_dependency 'paho-mqtt',  '~> 1.0.12'
-  spec.add_dependency 'concurrent-ruby',  '~> 1.1.6'
+  spec.add_dependency 'zeitwerk',   '2.7.2'
+  spec.add_dependency 'paho-mqtt',  '1.0.12'
+  spec.add_dependency 'concurrent-ruby',  '1.3.5'
 end

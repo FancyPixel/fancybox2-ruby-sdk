@@ -379,7 +379,7 @@ module Fancybox2
       # :nocov:
 
       def load_fbx_file
-        if File.exists? @fbxfile_path
+        if File.exist? @fbxfile_path
           @fbxfile = YAML.load(File.read(@fbxfile_path)).deep_symbolize_keys
         else
           raise Exceptions::FbxfileNotFound.new @fbxfile_path
