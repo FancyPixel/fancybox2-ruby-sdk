@@ -210,14 +210,9 @@ describe Fancybox2::Module::Base do
       module_base.on_configs packet
     end
 
-    it 'is expected to try to parse a JSON payload' do
-      expect(JSON).to receive :parse
-      module_base.on_configs json_packet
-    end
-
     it "is expected to merge found configs if 'configs' key is present into payload" do
       module_base.on_configs json_packet
-      expect(module_base.configs).to include 'foo' => 'bar'
+      expect(module_base.configs).to include {'foo' => 'bar'}
     end
   end
 

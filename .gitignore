@@ -17,3 +17,4 @@ app.rb
 test.rb
 examples.txt
 /spec/config/test/
+.tool-versions
